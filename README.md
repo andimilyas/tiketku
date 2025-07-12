@@ -27,30 +27,6 @@ Proyek ini merupakan bagian dari Tugas Besar Fullstack Web Programming JIDA 2025
 
 ---
 
-## 📁 Struktur Project (Sederhana)
-
-```
-/public
-/src
- ├── /components
- ├── /pages
- │    ├── index.tsx
- │    ├── events/index.tsx
- │    ├── events/[id].tsx
- │    ├── cart.tsx
- │    ├── orders.tsx
- │    ├── login.tsx
- │    └── register.tsx
- ├── /styles
- ├── /utils
- └── /api
-      ├── events.ts
-      ├── orders.ts
-      └── auth.ts
-```
-
----
-
 ## ⚙️ Cara Menjalankan Project
 
 1. **Clone Repository**
