@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 // Service data - in a real app, this would come from a database
 const serviceData = {
   konser: {
-    title: 'Tiket Konser',
+    title: 'Konser',
     description: 'Dapatkan tiket konser favoritmu dengan mudah dan cepat. Kami menyediakan tiket untuk berbagai jenis konser dari artis lokal hingga internasional.',
     features: [
       'Booking online 24/7',
@@ -18,7 +18,7 @@ const serviceData = {
     image: '/concert.jpg'
   },
   olahraga: {
-    title: 'Tiket Olahraga',
+    title: 'Olahraga',
     description: 'Tonton pertandingan olahraga langsung di stadion. Dari sepak bola, basket, hingga badminton, kami punya tiketnya.',
     features: [
       'Tiket untuk berbagai cabang olahraga',
@@ -31,7 +31,7 @@ const serviceData = {
     image: '/sports.jpg'
   },
   teater: {
-    title: 'Tiket Teater',
+    title: 'Teater',
     description: 'Nikmati pertunjukan teater dan drama terbaik. Dari drama klasik hingga pertunjukan modern.',
     features: [
       'Pertunjukan teater terbaik',
@@ -44,7 +44,7 @@ const serviceData = {
     image: '/theater.jpg'
   },
   seminar: {
-    title: 'Tiket Seminar',
+    title: 'Seminar',
     description: 'Hadiri seminar dan workshop yang informatif. Tingkatkan skill dan pengetahuan Anda.',
     features: [
       'Seminar dari expert terkemuka',

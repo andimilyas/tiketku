@@ -61,7 +61,7 @@ const Footer: React.FC = () => {
               </Stack>
               <Stack direction="row" alignItems="center" spacing={1}>
                 <EmailIcon color="primary" fontSize="small" />
-                <Typography color='textPrimary' variant="body2">info@tixgo.co.id</Typography>
+                <Typography color='textPrimary' variant="body2">info@tixgo.com</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={1}>
                 <LocationOnIcon color="primary" fontSize="small" />
