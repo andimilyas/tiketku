@@ -69,4 +69,4 @@ Proyek ini merupakan bagian dari Tugas Besar Fullstack Web Programming JIDA 2025
 
 ## 📄 Lisensi
 
-MIT License © 2025 Andi
+MIT License © 2025 Andi M Ilyas
