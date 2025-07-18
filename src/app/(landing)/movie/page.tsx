@@ -45,74 +45,191 @@ export default function MovieLandingPage() {
       .then(setMovieTickets);
   }, []);
   return (
-    <Box sx={{ bgcolor: '#0a1929', minHeight: '100vh', pb: 8 }}>
-      {/* Jumbotron */}
-      <Box sx={{ position: 'relative', height: 320, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'url(/public/globe.svg) center/cover, #181f2a', borderRadius: 4 }}>
-        <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(10,25,41,0.7)', borderRadius: 4 }} />
-          {/* Search Bar */}
-          <Box display="flex" justifyContent="center" mb={3}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f7fafc", py: 4 }}>
+      {/* Header */}
+      <Box
+        sx={{
+          maxWidth: 1100,
+          mx: "auto",
+          mb: 4,
+          px: 2,
+        }}
+      >
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Cari Tiket Bioskop & Film
+        </Typography>
+        {/* Navigasi Menu: Search & Filter */}
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
-              placeholder="Mau nonton apa hari ini?"
+              fullWidth
               variant="outlined"
-              sx={{ width: 400, bgcolor: '#fff', borderRadius: 2 }}
+              placeholder="Cari judul film, bioskop, atau genre"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon color="action" />
                   </InputAdornment>
                 ),
               }}
+              size="small"
+              // (Optional: add value/onChange for search if needed)
             />
-          </Box>
-          {/* Category Menu */}
-          <Box display="flex" justifyContent="center" gap={3} mb={4}>
-          {categories.map((cat) => (
-            <Button key={cat.label} variant="contained" sx={{ bgcolor: '#181f2a', color: '#fff', borderRadius: 3, px: 4, py: 2, fontWeight: 600, fontSize: 16, boxShadow: 2 }}>
-              <span style={{ fontSize: 22, marginRight: 8 }}>{cat.icon}</span> {cat.label}
-            </Button>
-          ))}
-        </Box>
-      </Box>
-      {/* Banner */}
-      <Container sx={{ py: 4 }}>
-      <Box display="flex" justifyContent="center" mb={5}>
-        <Paper sx={{ width: 700, height: 100, bgcolor: '#1e293b', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 3 }}>
-          <Typography color="#fff" fontWeight={600} fontSize={22}>Nikmati promo spesial nonton bareng teman!</Typography>
-        </Paper>
-      </Box>
-      </Container>
-      {/* Sedang Tayang Section */}
-      <Container sx={{ py: 4 }}>
-        <Box mb={5}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h5" color="#fff" fontWeight={700}>Sedang Tayang</Typography>
-            <Button variant="outlined" sx={{ color: '#90caf9', borderColor: '#90caf9' }}>Lihat semua</Button>
-          </Box>
-          <Grid container columns={{ xs: 12, sm: 12, md: 12 }} spacing={2}>
-            {movieTickets.slice(0, 4).map((movie) => (
-              <Grid size={{ xs: 12, sm: 9, md: 6, lg: 3 }} key={movie.id}>
-                <MovieCard movie={{ ...movie, showtime: movie.showtime ?? '' }} />
-              </Grid>
-            ))}
           </Grid>
-        </Box>
-      </Container>
-      {/* Sedang Trend Section */}
-      <Container sx={{ py: 4 }}>
-        <Box mb={5}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5" color="#fff" fontWeight={700}>Sedang Trend</Typography>
-          <Button variant="outlined" sx={{ color: '#90caf9', borderColor: '#90caf9' }}>Lihat semua</Button>
-        </Box>
-        <Grid container={true} columns={{ xs: 12, sm: 12, md: 12 }} spacing={2}>
-          {movieTickets.slice(1, 5).map((movie) => (
-            <Grid size={{ xs: 12, sm: 9, md: 6, lg: 2.5 }} key={movie.id}>
-              <MovieCard movie={movie} />
-            </Grid>
-          ))}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              {categories.map((cat) => (
+                <Button
+                  key={cat.label}
+                  variant="outlined"
+                  sx={{
+                    bgcolor: "#fff",
+                    color: "#181f2a",
+                    borderRadius: 2,
+                    px: 3,
+                    fontWeight: 600,
+                    fontSize: 15,
+                    borderColor: "#cbd5e1",
+                    boxShadow: 0,
+                    textTransform: "none",
+                  }}
+                  startIcon={<span style={{ fontSize: 20 }}>{cat.icon}</span>}
+                >
+                  {cat.label}
+                </Button>
+              ))}
+            </Box>
+          </Grid>
         </Grid>
       </Box>
-      </Container>
+
+      {/* Banner */}
+      <Box
+        sx={{
+          maxWidth: 1100,
+          mx: "auto",
+          mb: 4,
+          px: 2,
+        }}
+      >
+        <Paper
+          sx={{
+            width: "100%",
+            minHeight: 80,
+            bgcolor: "#1e293b",
+            borderRadius: 3,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: 3,
+            px: 2,
+          }}
+        >
+          <Typography color="#fff" fontWeight={600} fontSize={20}>
+            Nikmati promo spesial nonton bareng teman!
+          </Typography>
+        </Paper>
+      </Box>
+
+      {/* Sedang Tayang Section */}
+      <Box
+        sx={{
+          maxWidth: 1100,
+          mx: "auto",
+          px: 2,
+        }}
+      >
+        <Box mb={4}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6" fontWeight={700}>
+              Sedang Tayang
+            </Typography>
+            <Button
+              variant="outlined"
+              sx={{
+                color: "#2563eb",
+                borderColor: "#2563eb",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+            >
+              Lihat semua
+            </Button>
+          </Box>
+          {movieTickets.length === 0 ? (
+            <Box sx={{ textAlign: "center", mt: 6 }}>
+              <Typography variant="body1" color="text.secondary">
+                Tidak ada film yang sedang tayang.
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {movieTickets.slice(0, 4).map((movie) => (
+                <Grid size={{ xs: 12, md: 3, sm: 6 }} key={movie.id}>
+                  <MovieCard movie={{ ...movie, showtime: movie.showtime ?? "" }} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
+      </Box>
+
+      {/* Sedang Trend Section */}
+      <Box
+        sx={{
+          maxWidth: 1100,
+          mx: "auto",
+          px: 2,
+        }}
+      >
+        <Box mb={4}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6" fontWeight={700}>
+              Sedang Trend
+            </Typography>
+            <Button
+              variant="outlined"
+              sx={{
+                color: "#2563eb",
+                borderColor: "#2563eb",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+            >
+              Lihat semua
+            </Button>
+          </Box>
+          {movieTickets.length <= 1 ? (
+            <Box sx={{ textAlign: "center", mt: 6 }}>
+              <Typography variant="body1" color="text.secondary">
+                Tidak ada film trending saat ini.
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {movieTickets.slice(1, 5).map((movie) => (
+                <Grid size={{ xs: 12, md: 3, sm: 6 }} key={movie.id}>
+                  <MovieCard movie={movie} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 }
