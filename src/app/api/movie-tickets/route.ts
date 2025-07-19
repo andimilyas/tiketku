@@ -7,23 +7,23 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { title, price } = await req.json();
-  if (!title || !price) {
-    return NextResponse.json({ message: 'Title and price required' }, { status: 400 });
-  }
+  try {
+    const { title, price, cinema, showtime } = await req.json();
+    if (!title || !price || !cinema || !showtime) {
+      return NextResponse.json({ message: 'Semua field harus diisi' }, { status: 400 });
+    }
 
-  const { cinema, showtime } = await req.json();
-  if (!cinema || !showtime) {
-    return NextResponse.json({ message: 'Cinema and showtime required' }, { status: 400 });
+    const newTicket = await prisma.movie.create({
+      data: { 
+        title, 
+        price: parseFloat(price),
+        cinema,
+        showtime: new Date(showtime)
+      },
+    });
+    return NextResponse.json(newTicket, { status: 201 });
+  } catch (error) {
+    console.error('POST /api/movie-tickets error:', error);
+    return NextResponse.json({ message: 'Internal server error', error: error instanceof Error ? error.message : error }, { status: 500 });
   }
-
-  const newTicket = await prisma.movie.create({
-    data: { 
-      title, 
-      price: parseFloat(price),
-      cinema,
-      showtime
-    },
-  });
-  return NextResponse.json(newTicket, { status: 201 });
 }

@@ -34,7 +34,8 @@ export default function MovieTicketsPage() {
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
   const [cinema, setCinema] = useState('')
-  const [showtime, setShowtime] = useState('')
+  const [showDate, setShowDate] = useState(''); // YYYY-MM-DD
+  const [showTime, setShowTime] = useState(''); // HH:mm
   const [selectedTicket, setSelectedTicket] = useState<MovieTicket | null>(null)
   const [editMode, setEditMode] = useState(false)
 
@@ -61,61 +62,64 @@ export default function MovieTicketsPage() {
   }, [])
 
   const handleAddTicket = async () => {
-    // Data sesuai prisma: title, price, cinema, showtime
-    if (!title || !price || !cinema || !showtime) {
-      alert('Semua field harus diisi')
-      return
+    if (!title || !price || !cinema || !showDate || !showTime) {
+      alert('Semua field harus diisi');
+      return;
     }
-    const newTicket = { title, price: Number(price), cinema, showtime }
+    // Gabungkan tanggal dan jam ke ISO-8601
+    const showtime = `${showDate}T${showTime}:00`;
+    const newTicket = { title, price: Number(price), cinema, showtime };
 
     const res = await fetch('/api/movie-tickets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTicket),
-    })
+    });
 
     if (res.ok) {
-      const data = await res.json()
-      setTickets([...tickets, data])
-      setTitle('')
-      setPrice('')
-      setCinema('')
-      setShowtime('')
-      setOpen(false)
+      const data = await res.json();
+      setTickets([...tickets, data]);
+      setTitle('');
+      setPrice('');
+      setCinema('');
+      setShowDate('');
+      setShowTime('');
+      setOpen(false);
     } else {
-      const err = await res.json()
-      alert(err.message || 'Gagal menambahkan tiket')
+      const err = await res.json();
+      alert(err.message || 'Gagal menambahkan tiket');
     }
-  }
+  };
 
   const handleEditTicket = async () => {
-    if (!selectedTicket) return
-    if (!title || !price || !cinema || !showtime) {
-      alert('Semua field harus diisi')
-      return
+    if (!selectedTicket) return;
+    if (!title || !price || !cinema || !showDate || !showTime) {
+      alert('Semua field harus diisi');
+      return;
     }
-
+    const showtime = `${showDate}T${showTime}:00`;
     const res = await fetch(`/api/movie-tickets/${selectedTicket.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, price: Number(price), cinema, showtime }),
-    })
+    });
 
     if (res.ok) {
-      const updated = await res.json()
-      setTickets(tickets.map(t => t.id === updated.id ? updated : t))
-      setSelectedTicket(null)
-      setEditMode(false)
-      setOpen(false)
-      setTitle('')
-      setPrice('')
-      setCinema('')
-      setShowtime('')
+      const updated = await res.json();
+      setTickets(tickets.map(t => t.id === updated.id ? updated : t));
+      setSelectedTicket(null);
+      setEditMode(false);
+      setOpen(false);
+      setTitle('');
+      setPrice('');
+      setCinema('');
+      setShowDate('');
+      setShowTime('');
     } else {
-      const err = await res.json()
-      alert(err.message || 'Gagal mengedit tiket')
+      const err = await res.json();
+      alert(err.message || 'Gagal mengedit tiket');
     }
-  }
+  };
 
   const handleDeleteTicket = async (id: number) => {
     const confirmed = confirm('Yakin ingin menghapus tiket ini?')
@@ -132,24 +136,33 @@ export default function MovieTicketsPage() {
   }
 
   const handleOpenEdit = (ticket: MovieTicket) => {
-    setSelectedTicket(ticket)
-    setTitle(ticket.title)
-    setPrice(ticket.price.toString())
-    setCinema(ticket.cinema)
-    setShowtime(ticket.showtime)
-    setEditMode(true)
-    setOpen(true)
-  }
+    setSelectedTicket(ticket);
+    setTitle(ticket.title);
+    setPrice(ticket.price.toString());
+    setCinema(ticket.cinema);
+    // Pisahkan tanggal dan jam dari ISO-8601
+    if (ticket.showtime) {
+      const [date, time] = ticket.showtime.split('T');
+      setShowDate(date);
+      setShowTime(time ? time.slice(0,5) : '');
+    } else {
+      setShowDate('');
+      setShowTime('');
+    }
+    setEditMode(true);
+    setOpen(true);
+  };
 
   const handleClose = () => {
-    setOpen(false)
-    setEditMode(false)
-    setSelectedTicket(null)
-    setTitle('')
-    setPrice('')
-    setCinema('')
-    setShowtime('')
-  }
+    setOpen(false);
+    setEditMode(false);
+    setSelectedTicket(null);
+    setTitle('');
+    setPrice('');
+    setCinema('');
+    setShowDate('');
+    setShowTime('');
+  };
 
   return (
     <Box p={4} sx={{ backgroundColor: '#fff' }}>
@@ -229,16 +242,21 @@ export default function MovieTicketsPage() {
               ))}
             </TextField>
             <TextField
-              label="Showtime"
-              select
-              value={showtime}
-              onChange={(e) => setShowtime(e.target.value)}
+              label="Tanggal Tayang"
+              type="date"
+              value={showDate}
+              onChange={(e) => setShowDate(e.target.value)}
               fullWidth
-            >
-              {showtimeOptions.map((s) => (
-                <MenuItem key={s} value={s}>{s}</MenuItem>
-              ))}
-            </TextField>
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Jam Tayang"
+              type="time"
+              value={showTime}
+              onChange={(e) => setShowTime(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
           </Box>
         </DialogContent>
         <DialogActions>
