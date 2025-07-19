@@ -152,14 +152,14 @@ export default function Navbar() {
       ],
       // Akomodasi
       [
-        { label: 'Hotel', icon: <HotelIcon fontSize="small" />, href: '/akomodasi/hotel' },
-        { label: 'Villa', icon: <HolidayVillageIcon fontSize="small" />, href: '/akomodasi/villa' },
+        { label: 'Hotel', icon: <HotelIcon fontSize="small" />, href: '/hotel' },
+        { label: 'Villa', icon: <HolidayVillageIcon fontSize="small" />, href: '/villa' },
       ],
       // Hiburan
       [
-        { label: 'Teater', icon: <TheaterComedyIcon fontSize="small" />, href: '/hiburan/teater' },
-        { label: 'Konser', icon: <MusicNoteIcon fontSize="small" />, href: '/hiburan/konser' },
-        { label: 'Tempat Wisata', icon: <AttractionsIcon fontSize="small" />, href: '/hiburan/wisata' },
+        { label: 'Teater', icon: <TheaterComedyIcon fontSize="small" />, href: '/movie' },
+        { label: 'Konser', icon: <MusicNoteIcon fontSize="small" />, href: '/konser' },
+        { label: 'Tempat Wisata', icon: <AttractionsIcon fontSize="small" />, href: '/wisata' },
       ],
       // Activity
       [

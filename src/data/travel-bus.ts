@@ -1,0 +1,48 @@
+const travelBusData = [
+  {
+    id: 1,
+    name: 'PO Harapan Jaya',
+    location: 'Jakarta - Surabaya',
+    rating: 4.8,
+    reviews: '(1.203)',
+    oldPrice: 'IDR 450.000',
+    price: 'IDR 399.000',
+    image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    label: 'Top Bus 1',
+  },
+  {
+    id: 2,
+    name: 'PO Sinar Jaya',
+    location: 'Bandung - Yogyakarta',
+    rating: 4.7,
+    reviews: '(980)',
+    oldPrice: 'IDR 350.000',
+    price: 'IDR 320.000',
+    image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    label: 'Top Bus 2',
+  },
+  {
+    id: 3,
+    name: 'PO Rosalia Indah',
+    location: 'Semarang - Malang',
+    rating: 4.6,
+    reviews: '(1.110)',
+    oldPrice: 'IDR 400.000',
+    price: 'IDR 370.000',
+    image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    label: 'Top Bus 3',
+  },
+  {
+    id: 4,
+    name: 'PO Gunung Harta',
+    location: 'Denpasar - Surabaya',
+    rating: 4.5,
+    reviews: '(890)',
+    oldPrice: 'IDR 420.000',
+    price: 'IDR 390.000',
+    image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    label: 'Top Bus 4',
+  },
+];
+
+export default travelBusData; 

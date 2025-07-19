@@ -18,7 +18,7 @@ interface ImageBannerCarouselProps {
 
 const ImageBannerCarousel: React.FC<ImageBannerCarouselProps> = ({
   banners,
-  autoPlayInterval = 6000,
+  autoPlayInterval = 10000,
 }) => {
   const [current, setCurrent] = React.useState(0);
 
@@ -39,7 +39,7 @@ const ImageBannerCarousel: React.FC<ImageBannerCarouselProps> = ({
           overflow: 'hidden',
           boxShadow: 3,
           position: 'relative',
-          height: { xs: 200, sm: 320, md: 360 },
+          height: { xs: 200, sm: 320, md: 330 },
         }}
       >
         <img

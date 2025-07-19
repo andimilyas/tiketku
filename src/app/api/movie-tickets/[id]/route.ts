@@ -1,29 +1,16 @@
 import { NextResponse } from 'next/server';
-import { movieTickets } from '@/data/movie-tickets';
+import { prisma } from '@/lib/prisma';
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
-  const index = movieTickets.findIndex((t) => t.id === id);
-
-  if (index === -1) {
-    return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
-  }
-
-  const body = await req.json();
-  movieTickets[index] = { ...movieTickets[index], ...body };
-
-  return NextResponse.json(movieTickets[index]);
+  const { title, price } = await req.json();
+  const updated = await prisma.movie.update({
+    where: { id: String(params.id) },
+    data: { title, price: parseFloat(price) },
+  });
+  return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
-  const index = movieTickets.findIndex((t) => t.id === id);
-
-  if (index === -1) {
-    return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
-  }
-
-  const removed = movieTickets.splice(index, 1);
-
-  return NextResponse.json(removed[0]);
+export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+  await prisma.movie.delete({ where: { id: String(params.id) } });
+  return NextResponse.json({ message: 'Deleted' });
 }

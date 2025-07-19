@@ -1,13 +1,31 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Box, Button, Typography, Table, TableHead, TableRow, TableCell, TableBody, Paper, DialogActions, Dialog, DialogContent, TextField, DialogTitle } from '@mui/material'
+import {
+  Box,
+  Button,
+  Typography,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Paper,
+  DialogActions,
+  Dialog,
+  DialogContent,
+  TextField,
+  DialogTitle,
+  MenuItem,
+} from '@mui/material'
 
 interface MovieTicket {
   id: number
   title: string
   price: number
-  thumbnail: string
+  cinema: string
+  showtime: string
+  thumbnail?: string
 }
 
 export default function MovieTicketsPage() {
@@ -15,8 +33,26 @@ export default function MovieTicketsPage() {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
+  const [cinema, setCinema] = useState('')
+  const [showtime, setShowtime] = useState('')
   const [selectedTicket, setSelectedTicket] = useState<MovieTicket | null>(null)
   const [editMode, setEditMode] = useState(false)
+
+  // Optionally, you can fetch cinema/showtime options from API if needed
+  // For now, just use some static options for demo
+  const cinemaOptions = [
+    'XXI Plaza Indonesia',
+    'CGV Grand Indonesia',
+    'Cinepolis Senayan City',
+    'IMAX Kelapa Gading',
+  ]
+  const showtimeOptions = [
+    '10:00',
+    '12:30',
+    '15:00',
+    '17:30',
+    '20:00',
+  ]
 
   useEffect(() => {
     fetch('/api/movie-tickets')
@@ -25,7 +61,12 @@ export default function MovieTicketsPage() {
   }, [])
 
   const handleAddTicket = async () => {
-    const newTicket = { title, price: Number(price) }
+    // Data sesuai prisma: title, price, cinema, showtime
+    if (!title || !price || !cinema || !showtime) {
+      alert('Semua field harus diisi')
+      return
+    }
+    const newTicket = { title, price: Number(price), cinema, showtime }
 
     const res = await fetch('/api/movie-tickets', {
       method: 'POST',
@@ -38,19 +79,26 @@ export default function MovieTicketsPage() {
       setTickets([...tickets, data])
       setTitle('')
       setPrice('')
+      setCinema('')
+      setShowtime('')
       setOpen(false)
     } else {
-      alert('Gagal menambahkan tiket')
+      const err = await res.json()
+      alert(err.message || 'Gagal menambahkan tiket')
     }
   }
 
   const handleEditTicket = async () => {
     if (!selectedTicket) return
+    if (!title || !price || !cinema || !showtime) {
+      alert('Semua field harus diisi')
+      return
+    }
 
     const res = await fetch(`/api/movie-tickets/${selectedTicket.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, price: Number(price) }),
+      body: JSON.stringify({ title, price: Number(price), cinema, showtime }),
     })
 
     if (res.ok) {
@@ -61,8 +109,11 @@ export default function MovieTicketsPage() {
       setOpen(false)
       setTitle('')
       setPrice('')
+      setCinema('')
+      setShowtime('')
     } else {
-      alert('Gagal mengedit tiket')
+      const err = await res.json()
+      alert(err.message || 'Gagal mengedit tiket')
     }
   }
 
@@ -75,7 +126,8 @@ export default function MovieTicketsPage() {
     if (res.ok) {
       setTickets(tickets.filter(t => t.id !== id))
     } else {
-      alert('Gagal menghapus tiket')
+      const err = await res.json()
+      alert(err.message || 'Gagal menghapus tiket')
     }
   }
 
@@ -83,6 +135,8 @@ export default function MovieTicketsPage() {
     setSelectedTicket(ticket)
     setTitle(ticket.title)
     setPrice(ticket.price.toString())
+    setCinema(ticket.cinema)
+    setShowtime(ticket.showtime)
     setEditMode(true)
     setOpen(true)
   }
@@ -93,6 +147,8 @@ export default function MovieTicketsPage() {
     setSelectedTicket(null)
     setTitle('')
     setPrice('')
+    setCinema('')
+    setShowtime('')
   }
 
   return (
@@ -108,6 +164,8 @@ export default function MovieTicketsPage() {
           <TableHead>
             <TableRow>
               <TableCell>Judul</TableCell>
+              <TableCell>Bioskop</TableCell>
+              <TableCell>Showtime</TableCell>
               <TableCell>Harga</TableCell>
               <TableCell>Aksi</TableCell>
             </TableRow>
@@ -116,6 +174,8 @@ export default function MovieTicketsPage() {
             {tickets.map((ticket) => (
               <TableRow key={ticket.id}>
                 <TableCell>{ticket.title}</TableCell>
+                <TableCell>{ticket.cinema}</TableCell>
+                <TableCell>{ticket.showtime}</TableCell>
                 <TableCell>Rp {ticket.price.toLocaleString()}</TableCell>
                 <TableCell>
                   <Button
@@ -157,6 +217,28 @@ export default function MovieTicketsPage() {
               onChange={(e) => setPrice(e.target.value)}
               fullWidth
             />
+            <TextField
+              label="Bioskop"
+              select
+              value={cinema}
+              onChange={(e) => setCinema(e.target.value)}
+              fullWidth
+            >
+              {cinemaOptions.map((c) => (
+                <MenuItem key={c} value={c}>{c}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Showtime"
+              select
+              value={showtime}
+              onChange={(e) => setShowtime(e.target.value)}
+              fullWidth
+            >
+              {showtimeOptions.map((s) => (
+                <MenuItem key={s} value={s}>{s}</MenuItem>
+              ))}
+            </TextField>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -166,7 +248,6 @@ export default function MovieTicketsPage() {
           </Button>
         </DialogActions>
       </Dialog>
-
     </Box>
   )
 }

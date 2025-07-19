@@ -48,6 +48,7 @@ const Footer: React.FC = () => {
   }, []);
   return (
     <Box sx={{ bgcolor: 'grey.100', pt: 6, pb: 2 }}>
+      <Divider sx={{ my: 4 }} />
       <Container maxWidth="lg">
         {/* Main Footer Content */}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 4 }}>

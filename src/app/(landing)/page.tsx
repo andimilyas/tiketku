@@ -1,11 +1,12 @@
 "use client"
 
 import React from 'react';
-import { Box, Button, Container, Typography, Card, CardContent, Avatar } from '@mui/material';
-import EventSeatIcon from '@mui/icons-material/EventSeat';
-import SmartphoneIcon from '@mui/icons-material/Smartphone';
-import SecurityIcon from '@mui/icons-material/Security';
+import { Box, Container } from '@mui/material';
 import ImageBannerCarousel, { BannerItem } from '@/components/ImageBannerCarousel';
+import Filter from '@/components/Filter'
+import CardProduct from '@/components/CardProduct';
+
+import travelBusData from '@/data/travel-bus'
 
 const banners: BannerItem[] = [
   {
@@ -37,7 +38,19 @@ const Home: React.FC = () => {
       {/* Hero Section */}
       <Box sx={{ bgcolor: 'white', color: 'white', py: 6 }}>
         <Container maxWidth="lg">
-        <ImageBannerCarousel banners={banners} />
+          <ImageBannerCarousel banners={banners} />
+          <Filter />
+          <CardProduct />
+          <Box mt={6}>
+            {/* Section Travel & Bus */}
+            <CardProduct
+              title="Travel & Bus Favorit"
+              data={travelBusData.map(item => ({
+                ...item,
+                rating: String(item.rating),
+              }))}
+            />
+          </Box>
         </Container>
       </Box>
     </Box>

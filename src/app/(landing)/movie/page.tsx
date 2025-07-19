@@ -4,36 +4,35 @@ import { Box, Typography, Button, TextField, InputAdornment, Paper, Card, CardCo
 import SearchIcon from '@mui/icons-material/Search';
 import { useState, useEffect } from 'react';
 
+interface MovieTicket {
+  id: number;
+  title: string;
+  cinema: string;
+  showtime: string;
+  thumbnail?: string;
+  price: number;
+}
+
 const categories = [
   { label: 'Bioskop', icon: '🎬' },
   { label: 'Film', icon: '🎞️' },
   { label: 'Food', icon: '🍿' },
 ];
 
-function MovieCard({ movie }: { movie: import('../../../data/movie-tickets').MovieTicket }) {
+function MovieCard({ movie }: { movie: MovieTicket }) {
   return (
-    <Card sx={{ width: '100%', bgcolor: '#181f2a', color: '#fff', borderRadius: 3, boxShadow: 3 }}>
+    <Card>
       <CardMedia
-        sx={{ height: 280, bgcolor: '#222', borderRadius: 3 }}
         image={movie.thumbnail || '/public/globe.svg'}
         title={movie.title}
       />
       <CardContent>
-        <Typography variant="subtitle1" fontWeight={700} noWrap>{movie.title}</Typography>
-        <Typography variant="body2" color="#aaa">{movie.cinema}</Typography>
-        <Typography variant="body2" color="#90caf9">Rp {movie.price.toLocaleString()}</Typography>
+        <Typography>{movie.title}</Typography>
+        <Typography>{movie.cinema}</Typography>
+        <Typography>Rp {movie.price.toLocaleString()}</Typography>
       </CardContent>
     </Card>
   );
-}
-
-interface MovieTicket {
-  showtime: string;
-  id: number
-  title: string
-  cinema: string
-  price: number
-  thumbnail?: string
 }
 
 export default function MovieLandingPage() {
@@ -173,7 +172,7 @@ export default function MovieLandingPage() {
             <Grid container spacing={3}>
               {movieTickets.slice(0, 4).map((movie) => (
                 <Grid size={{ xs: 12, md: 3, sm: 6 }} key={movie.id}>
-                  <MovieCard movie={{ ...movie, showtime: movie.showtime ?? "" }} />
+                  <MovieCard movie={movie} />
                 </Grid>
               ))}
             </Grid>

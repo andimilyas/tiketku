@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MovieCategory {
+  id     String  @id @default(uuid())
+  name   String  @unique
+  movies Movie[]
+}
+
+model Movie {
+  id         String         @id @default(uuid())
+  title      String
+  cinema     String
+  showtime   DateTime
+  thumbnail  String?
+  price      Int
+  categoryId String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  category   MovieCategory? @relation(fields: [categoryId], references: [id])
+}
