@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -44,97 +44,46 @@ const banners: BannerItem[] = [
   }
 ];
 
-// Dummy data tiket pesawat
-const flightTickets = [
-  {
-    id: 1,
-    airline: "Garuda Indonesia",
-    from: "Jakarta (CGK)",
-    to: "Bali (DPS)",
-    date: "2024-07-20",
-    time: "08:00",
-    price: 1200000,
-    logo: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Garuda_Indonesia_logo.svg",
-    class: "Ekonomi",
-  },
-  {
-    id: 2,
-    airline: "AirAsia",
-    from: "Jakarta (CGK)",
-    to: "Surabaya (SUB)",
-    date: "2024-07-21",
-    time: "10:30",
-    price: 950000,
-    logo: "https://upload.wikimedia.org/wikipedia/commons/6/6e/AirAsia_New_Logo.svg",
-    class: "Ekonomi",
-  },
-  {
-    id: 3,
-    airline: "Citilink",
-    from: "Jakarta (CGK)",
-    to: "Yogyakarta (YIA)",
-    date: "2024-07-22",
-    time: "13:15",
-    price: 800000,
-    logo: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Logo_Citilink.svg",
-    class: "Ekonomi",
-  },
-  {
-    id: 4,
-    airline: "Batik Air",
-    from: "Jakarta (CGK)",
-    to: "Medan (KNO)",
-    date: "2024-07-23",
-    time: "09:45",
-    price: 1350000,
-    logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Batik_Air_logo.svg",
-    class: "Bisnis",
-  },
-  {
-    id: 5,
-    airline: "Lion Air",
-    from: "Jakarta (CGK)",
-    to: "Makassar (UPG)",
-    date: "2024-07-24",
-    time: "15:00",
-    price: 1100000,
-    logo: "https://upload.wikimedia.org/wikipedia/commons/2/2d/Lion_Air_logo.svg",
-    class: "Ekonomi",
-  },
-  {
-    id: 6,
-    airline: "Super Air Jet",
-    from: "Jakarta (CGK)",
-    to: "Padang (PDG)",
-    date: "2024-07-25",
-    time: "17:30",
-    price: 1050000,
-    logo: "https://upload.wikimedia.org/wikipedia/commons/7/7d/Super_Air_Jet_logo.svg",
-    class: "Ekonomi",
-  },
-];
-
-const allOrigins = Array.from(new Set(flightTickets.map((t) => t.from)));
-const allDestinations = Array.from(new Set(flightTickets.map((t) => t.to)));
-const allClasses = Array.from(new Set(flightTickets.map((t) => t.class)));
-
 export default function PesawatPage() {
   const [search, setSearch] = useState("");
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [flightClass, setFlightClass] = useState("");
   const [date, setDate] = useState("");
+  const [flightTickets, setFlightTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFlights = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/flights");
+        const data = await res.json();
+        setFlightTickets(data);
+      } catch (err) {
+        setFlightTickets([]);
+      }
+      setLoading(false);
+    };
+    fetchFlights();
+  }, []);
+
+  // Generate filter options dari data dinamis
+  const allOrigins = Array.from(new Set(flightTickets.map((t) => t.flightDetail?.departure)));
+  const allDestinations = Array.from(new Set(flightTickets.map((t) => t.flightDetail?.arrival)));
+  const allClasses = Array.from(new Set(flightTickets.map((t) => t.flightDetail?.class)));
 
   // Filter logic
   const filteredTickets = flightTickets.filter((ticket) => {
     const matchSearch =
-      ticket.airline.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.from.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.to.toLowerCase().includes(search.toLowerCase());
-    const matchOrigin = origin ? ticket.from === origin : true;
-    const matchDestination = destination ? ticket.to === destination : true;
-    const matchClass = flightClass ? ticket.class === flightClass : true;
-    const matchDate = date ? ticket.date === date : true;
+      (ticket.title?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (ticket.flightDetail?.airline?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (ticket.flightDetail?.departure?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (ticket.flightDetail?.arrival?.toLowerCase() || "").includes(search.toLowerCase());
+    const matchOrigin = origin ? ticket.flightDetail?.departure === origin : true;
+    const matchDestination = destination ? ticket.flightDetail?.arrival === destination : true;
+    const matchClass = flightClass ? ticket.flightDetail?.class === flightClass : true;
+    const matchDate = date ? ticket.flightDetail?.departureTime?.slice(0,10) === date : true;
     return matchSearch && matchOrigin && matchDestination && matchClass && matchDate;
   });
 
@@ -367,7 +316,13 @@ export default function PesawatPage() {
           px: 2,
         }}
       >
-        {filteredTickets.length === 0 ? (
+        {loading ? (
+          <Box sx={{ textAlign: "center", mt: 8 }}>
+            <Typography variant="h6" color="text.secondary">
+              Memuat data penerbangan...
+            </Typography>
+          </Box>
+        ) : filteredTickets.length === 0 ? (
           <Box sx={{ textAlign: "center", mt: 8 }}>
             <Typography variant="h6" color="text.secondary">
               Tidak ada tiket pesawat yang ditemukan.
@@ -380,43 +335,46 @@ export default function PesawatPage() {
                 <Card elevation={3} sx={{ borderRadius: 3 }}>
                   <CardContent>
                     <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <img
-                        src={ticket.logo}
-                        alt={ticket.airline}
-                        style={{
-                          width: 40,
-                          height: 40,
-                          objectFit: "contain",
-                          marginRight: 12,
-                        }}
-                      />
+                      {/* Logo maskapai jika ada, fallback ke icon */}
+                      {ticket.vendor?.logo ? (
+                        <img
+                          src={ticket.vendor.logo}
+                          alt={ticket.vendor.name}
+                          style={{ width: 40, height: 40, objectFit: "contain", marginRight: 12 }}
+                        />
+                      ) : (
+                        <FlightTakeoffIcon sx={{ fontSize: 40, mr: 1 }} />
+                      )}
                       <Typography variant="h6" fontWeight="bold">
-                        {ticket.airline}
+                        {ticket.flightDetail?.airline || ticket.vendor?.name || ticket.title}
                       </Typography>
                     </Box>
                     <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                       <Typography variant="body1" fontWeight="bold">
-                        {ticket.from}
+                        {ticket.flightDetail?.departure}
                       </Typography>
                       <span style={{ margin: "0 8px" }}>→</span>
                       <Typography variant="body1" fontWeight="bold">
-                        {ticket.to}
+                        {ticket.flightDetail?.arrival}
                       </Typography>
                     </Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {new Date(ticket.date).toLocaleDateString("id-ID", {
-                        weekday: "short",
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}{" "}
-                      • {ticket.time}
+                      {ticket.flightDetail?.departureTime ?
+                        new Date(ticket.flightDetail.departureTime).toLocaleDateString("id-ID", {
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        }) : ""}
+                      {ticket.flightDetail?.departureTime ? ` • ${ticket.flightDetail.departureTime.slice(11,16)}` : ""}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Kelas: {ticket.class}
+                      Kelas: {Array.isArray(ticket.flightDetail?.classes) && ticket.flightDetail.classes.length > 0
+                        ? ticket.flightDetail.classes.map((cls: any) => `${cls.className} (Rp ${Number(cls.price).toLocaleString('id-ID')}, kursi ${cls.seatCount})`).join(', ')
+                        : '-'}
                     </Typography>
                     <Typography variant="h6" color="primary" fontWeight="bold">
-                      Rp {ticket.price.toLocaleString("id-ID")}
+                      Rp {ticket.price ? Number(ticket.price).toLocaleString("id-ID") : "-"}
                     </Typography>
                   </CardContent>
                   <CardActions>

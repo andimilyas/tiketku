@@ -184,7 +184,7 @@ const TabSearchBox = () => {
             zIndex: 999,
             padding: 1,
             borderRadius: 8,
-            boxShadow: 2,
+            boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px',
             '& .MuiTabs-scrollButtons': {
               color: 'primary.main',
               backgroundColor: '#f0f0f0',
@@ -241,7 +241,7 @@ const TabSearchBox = () => {
       </Box>
 
 
-      <Box mt={-3} sx={{ borderRadius: 4, backgroundColor: 'white', boxShadow: 2, padding: 4, display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box mt={-3} sx={{ borderRadius: 4, backgroundColor: 'white', boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px', padding: 4, display: 'flex', alignItems: 'center', gap: 1 }}>
         <Box sx={{ display: 'flex', pt: 2, alignItems: 'center', flexDirection: 'column', width: '100%' }}>
           {renderTabContent()}
           <Typography fontSize={14} color="text.secondary" sx={{ flex: 1, mt: 4 }}>

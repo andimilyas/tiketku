@@ -1,16 +1,52 @@
 'use client'
 
-import { Box, Typography, Button, TextField, InputAdornment, Paper, Card, CardContent, CardMedia, Grid, Container } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  InputAdornment,
+  Paper,
+  Card,
+  CardContent,
+  CardMedia,
+  Grid,
+  Chip,
+} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
+import { useDispatch } from 'react-redux';
+import { addToCart } from '../../../store/cartSlice';
 
-interface MovieTicket {
-  id: number;
+type MovieStatus = 'SEDANG_TAYANG' | 'SEBENTAR_LAGI';
+
+interface MovieDetail {
+  id: string;
+  productId: string;
+  duration: number;
+  genre: string;
+  rating: string;
+  language?: string;
+  subtitle?: string;
+  posterUrl?: string;
+  status: MovieStatus;
+}
+
+interface Vendor {
+  id: string;
+  name: string;
+}
+
+interface MovieProduct {
+  id: string;
   title: string;
-  cinema: string;
-  showtime: string;
-  thumbnail?: string;
+  description?: string;
+  location?: string;
   price: number;
+  category: string;
+  movieDetail: MovieDetail;
+  vendor: Vendor;
+  reviews?: any[];
 }
 
 const categories = [
@@ -19,30 +55,104 @@ const categories = [
   { label: 'Food', icon: '🍿' },
 ];
 
-function MovieCard({ movie }: { movie: MovieTicket }) {
+function AddToCartButton({ id, name, price }: { id: string, name: string, price: number }) {
+  const dispatch = useDispatch();
   return (
-    <Card>
+    <Button
+      variant="contained"
+      color="primary"
+      fullWidth
+      sx={{ mt: 1, borderRadius: 2 }}
+      onClick={() => dispatch(addToCart({ id, name, price, quantity: 1 }))}
+    >
+      Tambah ke Keranjang
+    </Button>
+  );
+}
+
+function MovieCard({ movie }: { movie: MovieProduct }) {
+  return (
+    <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardMedia
-        image={movie.thumbnail || '/public/globe.svg'}
-        title={movie.title}
+        component="img"
+        image={movie.movieDetail?.posterUrl || '/globe.svg'}
+        alt={movie.title}
+        sx={{ height: 220, objectFit: 'cover', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
       />
-      <CardContent>
-        <Typography>{movie.title}</Typography>
-        <Typography>{movie.cinema}</Typography>
-        <Typography>Rp {movie.price.toLocaleString()}</Typography>
+      <CardContent sx={{ flex: 1 }}>
+        <Typography variant="subtitle1" fontWeight={700} gutterBottom noWrap>
+          {movie.title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {movie.location || movie.vendor?.name}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1, flexWrap: 'wrap' }}>
+          <Chip
+            size="small"
+            label={movie.movieDetail?.genre || '-'}
+            sx={{ bgcolor: '#e0e7ff', color: '#3730a3', fontWeight: 600 }}
+          />
+          <Chip
+            size="small"
+            label={movie.movieDetail?.rating || '-'}
+            sx={{ bgcolor: '#fef9c3', color: '#b45309', fontWeight: 600 }}
+          />
+          {movie.movieDetail?.status === 'SEDANG_TAYANG' && (
+            <Chip
+              size="small"
+              label="Sedang Tayang"
+              color="success"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+          {movie.movieDetail?.status === 'SEBENTAR_LAGI' && (
+            <Chip
+              size="small"
+              label="Segera Tayang"
+              color="warning"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+        </Box>
+        <Typography variant="h6" fontWeight={700} color="primary" mt={2}>
+          Rp {movie.price.toLocaleString()}
+        </Typography>
+        <AddToCartButton id={movie.id} name={movie.title} price={movie.price} />
       </CardContent>
     </Card>
   );
 }
 
 export default function MovieLandingPage() {
-  const [movieTickets, setMovieTickets] = useState<MovieTicket[]>([]);
+  const [movies, setMovies] = useState<MovieProduct[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/movie-tickets')
+    fetch('/api/movies')
       .then(res => res.json())
-      .then(setMovieTickets);
+      .then((data) => setMovies(Array.isArray(data) ? data : []));
   }, []);
+
+  // Filter logic
+  const filteredMovies = movies.filter((movie) => {
+    const searchLower = search.toLowerCase();
+    const matchesSearch =
+      movie.title.toLowerCase().includes(searchLower) ||
+      (movie.location && movie.location.toLowerCase().includes(searchLower)) ||
+      (movie.movieDetail?.genre && movie.movieDetail.genre.toLowerCase().includes(searchLower));
+    // For now, category filter is not implemented (since backend only has 'movie' category)
+    return matchesSearch;
+  });
+
+  // Group movies by status
+  const sedangTayang = filteredMovies.filter(
+    (movie) => movie.movieDetail?.status === 'SEDANG_TAYANG'
+  );
+  const sebentarLagi = filteredMovies.filter(
+    (movie) => movie.movieDetail?.status === 'SEBENTAR_LAGI'
+  );
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f7fafc", py: 4 }}>
       {/* Header */}
@@ -64,6 +174,8 @@ export default function MovieLandingPage() {
               fullWidth
               variant="outlined"
               placeholder="Cari judul film, bioskop, atau genre"
+              value={search}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -72,7 +184,6 @@ export default function MovieLandingPage() {
                 ),
               }}
               size="small"
-              // (Optional: add value/onChange for search if needed)
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -80,10 +191,10 @@ export default function MovieLandingPage() {
               {categories.map((cat) => (
                 <Button
                   key={cat.label}
-                  variant="outlined"
+                  variant={selectedCategory === cat.label ? "contained" : "outlined"}
                   sx={{
-                    bgcolor: "#fff",
-                    color: "#181f2a",
+                    bgcolor: selectedCategory === cat.label ? "#2563eb" : "#fff",
+                    color: selectedCategory === cat.label ? "#fff" : "#181f2a",
                     borderRadius: 2,
                     px: 3,
                     fontWeight: 600,
@@ -93,6 +204,8 @@ export default function MovieLandingPage() {
                     textTransform: "none",
                   }}
                   startIcon={<span style={{ fontSize: 20 }}>{cat.icon}</span>}
+                  onClick={() => setSelectedCategory(cat.label)}
+                  disabled // kategori filter belum diimplementasi di backend
                 >
                   {cat.label}
                 </Button>
@@ -158,11 +271,12 @@ export default function MovieLandingPage() {
                 textTransform: "none",
                 fontWeight: 600,
               }}
+              // onClick: bisa diarahkan ke halaman semua film sedang tayang
             >
               Lihat semua
             </Button>
           </Box>
-          {movieTickets.length === 0 ? (
+          {sedangTayang.length === 0 ? (
             <Box sx={{ textAlign: "center", mt: 6 }}>
               <Typography variant="body1" color="text.secondary">
                 Tidak ada film yang sedang tayang.
@@ -170,8 +284,8 @@ export default function MovieLandingPage() {
             </Box>
           ) : (
             <Grid container spacing={3}>
-              {movieTickets.slice(0, 4).map((movie) => (
-                <Grid size={{ xs: 12, md: 3, sm: 6 }} key={movie.id}>
+              {sedangTayang.slice(0, 4).map((movie) => (
+                <Grid size={{ xs: 12, sm: 6, md: 3}} key={movie.id}>
                   <MovieCard movie={movie} />
                 </Grid>
               ))}
@@ -180,7 +294,7 @@ export default function MovieLandingPage() {
         </Box>
       </Box>
 
-      {/* Sedang Trend Section */}
+      {/* Segera Tayang Section */}
       <Box
         sx={{
           maxWidth: 1100,
@@ -198,7 +312,7 @@ export default function MovieLandingPage() {
             }}
           >
             <Typography variant="h6" fontWeight={700}>
-              Sedang Trend
+              Segera Tayang
             </Typography>
             <Button
               variant="outlined"
@@ -208,20 +322,21 @@ export default function MovieLandingPage() {
                 textTransform: "none",
                 fontWeight: 600,
               }}
+              // onClick: bisa diarahkan ke halaman semua film segera tayang
             >
               Lihat semua
             </Button>
           </Box>
-          {movieTickets.length <= 1 ? (
+          {sebentarLagi.length === 0 ? (
             <Box sx={{ textAlign: "center", mt: 6 }}>
               <Typography variant="body1" color="text.secondary">
-                Tidak ada film trending saat ini.
+                Tidak ada film yang akan tayang dalam waktu dekat.
               </Typography>
             </Box>
           ) : (
             <Grid container spacing={3}>
-              {movieTickets.slice(1, 5).map((movie) => (
-                <Grid size={{ xs: 12, md: 3, sm: 6 }} key={movie.id}>
+              {sebentarLagi.slice(0, 4).map((movie) => (
+                <Grid size={{ xs: 12, sm: 6, md: 3}} key={movie.id}>
                   <MovieCard movie={movie} />
                 </Grid>
               ))}

@@ -1,5 +1,9 @@
 'use client';
-
+ // Icon keranjang dengan popover CartList
+ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+ import CartList from './CartList';
+ import { useSelector } from 'react-redux';
+ import { RootState } from '../store';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
@@ -20,7 +24,7 @@ import {
   Divider,
   Button,
 } from '@mui/material';
-import WidgetsIcon from '@mui/icons-material/Widgets';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
@@ -43,8 +47,19 @@ import TwoWheelerIcon from '@mui/icons-material/TwoWheeler';
 import HolidayVillageIcon from '@mui/icons-material/HolidayVillage';
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { useSession, signIn } from 'next-auth/react';
 
 export default function Navbar() {
+  const [anchorCart, setAnchorCart] = useState<null | HTMLElement>(null);
+  const cartItems = useSelector((state: RootState) => state.cart.cartItems);
+ 
+  const handleCartOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorCart(event.currentTarget);
+  };
+ 
+  const handleCartClose = () => {
+    setAnchorCart(null);
+  };
   const [search, setSearch] = useState('');
   const [anchorCategory, setAnchorCategory] = useState<null | HTMLElement>(null);
   const [anchorUser, setAnchorUser] = useState<null | HTMLElement>(null);
@@ -117,6 +132,8 @@ export default function Navbar() {
     { label: 'Reviewmu', icon: <RateReviewIcon fontSize="small" />, href: '/review' },
     { label: 'Logout', icon: <LogoutIcon fontSize="small" />, href: '/logout' },
   ];
+
+  const { data: session } = useSession();
 
   // Popover handlers
   const handleCategoryOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -284,14 +301,13 @@ export default function Navbar() {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {/* Kategori */}
-            <Button
+            <Box
               onClick={handleCategoryOpen}
               aria-label="Kategori"
-              sx={{ borderRadius: 2, textTransform: 'none', fontSize: 14, fontWeight: 500, pl: 1, pr: 1.5 }}
-              startIcon={<WidgetsIcon />}
+              sx={{ borderRadius: 2, textTransform: 'none', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
             >
-              Kategori
-            </Button>
+              <MenuRoundedIcon color='primary' />
+            </Box>
             <Popover
               open={Boolean(anchorCategory)}
               anchorEl={anchorCategory}
@@ -331,28 +347,51 @@ export default function Navbar() {
               <NotificationsNoneIcon />
             </Badge>
           </IconButton>
-
-          {/* User */}
-          <IconButton
-            color="primary"
-            onClick={handleUserOpen}
-            aria-label="User"
-            sx={{ borderRadius: 2, ml: 1 }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.light' }}>
-              <PersonOutlineIcon />
-            </Avatar>
+          <IconButton color="primary" sx={{ borderRadius: 2 }} onClick={handleCartOpen} aria-label="Keranjang">
+            <Badge badgeContent={cartItems.length} color="error">
+              <ShoppingCartIcon />
+            </Badge>
           </IconButton>
           <Popover
-            open={Boolean(anchorUser)}
-            anchorEl={anchorUser}
-            onClose={handleUserClose}
+            open={Boolean(anchorCart)}
+            anchorEl={anchorCart}
+            onClose={handleCartClose}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            PaperProps={{ sx: { mt: 1, borderRadius: 2, minWidth: 220 } }}
+            PaperProps={{ sx: { mt: 1, borderRadius: 2, minWidth: 320 } }}
           >
-            {renderUserMenu()}
+            <CartList />
           </Popover>
+          {/* User/Login */}
+          {session ? (
+            <>
+              <IconButton
+                color="primary"
+                onClick={handleUserOpen}
+                aria-label="User"
+                sx={{ borderRadius: 2, ml: 1 }}
+              >
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.light' }} src={session.user?.image || undefined}>
+                  <PersonOutlineIcon />
+                </Avatar>
+              </IconButton>
+              <Popover
+                open={Boolean(anchorUser)}
+                anchorEl={anchorUser}
+                onClose={handleUserClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                PaperProps={{ sx: { mt: 1, borderRadius: 2, minWidth: 220 } }}
+              >
+                {renderUserMenu()}
+              </Popover>
+            </>
+          ) : (
+            <>
+              <Button color="primary" variant="outlined" sx={{ ml: 1 }} href="/auth/login">Masuk</Button>
+              <Button color="primary" variant="contained" sx={{ ml: 1 }} href="/auth/register">Daftar</Button>
+            </>
+          )}
         </Box>
       </Toolbar>
     </AppBar>

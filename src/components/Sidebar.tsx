@@ -18,11 +18,14 @@ const drawerWidth = 240;
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
+  { text: 'Vendors', icon: <DashboardIcon />, href: '/vendors' },
   {
     text: 'Products',
     icon: <InventoryIcon />,
     children: [
-      { text: 'Movie Tickets', href: '/products/movie-tickets' },
+      { text: 'Movies', href: '/products/movies' },
+      { text: 'Flights', href: '/products/flights' },
+      { text: 'Trains', href: '/products/trains' },
       // Tambahkan sub-menu lain di sini nanti
     ],
   },

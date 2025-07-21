@@ -1,60 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Container, Typography, Card, CardContent, TextField, InputAdornment, IconButton, Button, MenuItem, Grid } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import TrainIcon from '@mui/icons-material/Train';
-
-const trainTickets = [
-  {
-    id: 1,
-    train: 'Argo Bromo Anggrek',
-    from: 'Gambir',
-    to: 'Surabaya Pasar Turi',
-    departure: '2024-07-20T08:00:00',
-    arrival: '2024-07-20T16:00:00',
-    price: 450000,
-    class: 'Eksekutif'
-  },
-  {
-    id: 2,
-    train: 'Taksaka',
-    from: 'Gambir',
-    to: 'Yogyakarta',
-    departure: '2024-07-21T09:30:00',
-    arrival: '2024-07-21T15:30:00',
-    price: 350000,
-    class: 'Eksekutif'
-  },
-  {
-    id: 3,
-    train: 'Serayu',
-    from: 'Pasar Senen',
-    to: 'Purwokerto',
-    departure: '2024-07-22T06:00:00',
-    arrival: '2024-07-22T13:00:00',
-    price: 180000,
-    class: 'Ekonomi'
-  },
-  {
-    id: 4,
-    train: 'Gaya Baru Malam Selatan',
-    from: 'Pasar Senen',
-    to: 'Surabaya Gubeng',
-    departure: '2024-07-23T12:00:00',
-    arrival: '2024-07-23T23:00:00',
-    price: 220000,
-    class: 'Ekonomi'
-  }
-];
-
-function formatDateTime(dt: string) {
-  const date = new Date(dt);
-  return date.toLocaleString('id-ID', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  });
-}
 
 export default function KeretaApiPage() {
   const [search, setSearch] = useState('');
@@ -62,16 +10,53 @@ export default function KeretaApiPage() {
   const [date, setDate] = useState('');
   const [trainClass, setTrainClass] = useState('');
   const [origin, setOrigin] = useState('');
+  const [trainTickets, setTrainTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrains = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/trains');
+        const data = await res.json();
+        setTrainTickets(data);
+      } catch (err) {
+        setTrainTickets([]);
+      }
+      setLoading(false);
+    };
+    fetchTrains();
+  }, []);
+
+  // Generate filter options dari data dinamis
+  const allOrigins = Array.from(new Set(trainTickets.map((t) => t.trainDetail?.departureStation)));
+  const allDestinations = Array.from(new Set(trainTickets.map((t) => t.trainDetail?.arrivalStation)));
+  const allClasses = Array.from(new Set(trainTickets.flatMap((t) => (t.trainDetail?.classes || []).map((c: any) => c.className))));
+
+  // Filter logic
+  const filteredTickets = trainTickets.filter(ticket => {
+    const matchSearch =
+      (ticket.trainDetail?.trainName?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (ticket.trainDetail?.departureStation?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (ticket.trainDetail?.arrivalStation?.toLowerCase() || '').includes(search.toLowerCase());
+    const matchOrigin = origin ? ticket.trainDetail?.departureStation === origin : true;
+    const matchDestination = destination ? ticket.trainDetail?.arrivalStation === destination : true;
+    const matchClass = trainClass ? (ticket.trainDetail?.classes || []).some((c: any) => c.className === trainClass) : true;
+    const matchDate = date ? (ticket.trainDetail?.departureTime?.slice(0,10) === date) : true;
+    return matchSearch && matchOrigin && matchDestination && matchClass && matchDate;
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setOrigin(e.target.value);
   };
 
-  const filteredTickets = trainTickets.filter(ticket =>
-    ticket.train.toLowerCase().includes(search.toLowerCase()) ||
-    ticket.from.toLowerCase().includes(search.toLowerCase()) ||
-    ticket.to.toLowerCase().includes(search.toLowerCase())
-  );
+  function formatDateTime(dt: string) {
+    const date = new Date(dt);
+    return date.toLocaleString('id-ID', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f7fafc', py: 4 }}>
@@ -202,7 +187,7 @@ export default function KeretaApiPage() {
                 size="small"
               >
                 <MenuItem value="">Semua</MenuItem>
-                {[...new Set(trainTickets.map(t => t.from))].map(st => (
+                {allOrigins.map(st => (
                   <MenuItem key={st} value={st}>{st}</MenuItem>
                 ))}
               </TextField>
@@ -217,7 +202,7 @@ export default function KeretaApiPage() {
                 size="small"
               >
                 <MenuItem value="">Semua</MenuItem>
-                {[...new Set(trainTickets.map(t => t.to))].map(st => (
+                {allDestinations.map(st => (
                   <MenuItem key={st} value={st}>{st}</MenuItem>
                 ))}
               </TextField>
@@ -232,7 +217,7 @@ export default function KeretaApiPage() {
                 size="small"
               >
                 <MenuItem value="">Semua</MenuItem>
-                {[...new Set(trainTickets.map(t => t.class))].map(cls => (
+                {allClasses.map(cls => (
                   <MenuItem key={cls} value={cls}>{cls}</MenuItem>
                 ))}
               </TextField>
@@ -263,43 +248,51 @@ export default function KeretaApiPage() {
       <Container maxWidth="md">
         {/* List Tiket Kereta */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {filteredTickets.length === 0 ? (
+          {loading ? (
+            <Typography color="text.secondary" align="center">
+              Memuat data kereta...
+            </Typography>
+          ) : filteredTickets.length === 0 ? (
             <Typography color="text.secondary" align="center">
               Tidak ada tiket ditemukan.
             </Typography>
           ) : (
-            filteredTickets.map(ticket => (
-              <Card key={ticket.id} elevation={2}>
-                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <TrainIcon color="primary" />
-                    <Typography variant="h6" fontWeight="bold">
-                      {ticket.train}
+            filteredTickets.map(ticket => {
+              return (
+                <Card key={ticket.id} elevation={2}>
+                  <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TrainIcon color="primary" />
+                      <Typography variant="h6" fontWeight="bold">
+                        {ticket.trainDetail?.trainName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                        {Array.isArray(ticket.trainDetail?.classes) && ticket.trainDetail.classes.length > 0
+                          ? ticket.trainDetail.classes.map((cls: any) => `${cls.className} (Rp ${Number(cls.price).toLocaleString('id-ID')}, kursi ${cls.seatCount})`).join(', ')
+                          : '-'}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1">
+                      {ticket.trainDetail?.departureStation} &rarr; {ticket.trainDetail?.arrivalStation}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                      {ticket.class}
+                    <Typography variant="body2" color="text.secondary">
+                      Berangkat: {formatDateTime(ticket.trainDetail?.departureTime)}
                     </Typography>
-                  </Box>
-                  <Typography variant="body1">
-                    {ticket.from} &rarr; {ticket.to}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Berangkat: {formatDateTime(ticket.departure)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tiba: {formatDateTime(ticket.arrival)}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                    <Typography variant="h6" color="primary">
-                      Rp {ticket.price.toLocaleString('id-ID')}
+                    <Typography variant="body2" color="text.secondary">
+                      Tiba: {formatDateTime(ticket.trainDetail?.arrivalTime)}
                     </Typography>
-                    <Button variant="contained" color="primary" size="small">
-                      Pesan
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            ))
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                      <Typography variant="h6" color="primary">
+                        Rp {ticket.price ? Number(ticket.price).toLocaleString('id-ID') : '-'}
+                      </Typography>
+                      <Button variant="contained" color="primary" size="small">
+                        Pesan
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </Box>
       </Container>
