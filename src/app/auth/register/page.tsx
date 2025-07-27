@@ -12,6 +12,12 @@ import {
   Typography,
   ToggleButtonGroup,
   ToggleButton,
+  Alert,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import GoogleIcon from '@mui/icons-material/Google';
 import { signIn } from "next-auth/react";
@@ -21,6 +27,17 @@ const RegisterPage = () => {
   const [method, setMethod] = useState<'email' | 'phone'>('email');
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otpDialogOpen, setOtpDialogOpen] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerError, setRegisterError] = useState("");
+  const [registerSuccess, setRegisterSuccess] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpSuccess, setOtpSuccess] = useState("");
+  const [username, setUsername] = useState("");
 
   const handleMethodChange = (
     event: React.MouseEvent<HTMLElement>,
@@ -32,9 +49,54 @@ const RegisterPage = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Registration logic here (not implemented)
+    setRegisterError("");
+    setRegisterSuccess("");
+    if (!value || !password || !confirmPassword) {
+      setRegisterError("Semua field wajib diisi");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setRegisterError("Password dan konfirmasi password tidak sama");
+      return;
+    }
+    setRegisterLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value, password, name: username }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal register");
+      setRegisterSuccess("Register berhasil! Silakan cek email untuk OTP.");
+      setRegisterEmail(value);
+      setOtpDialogOpen(true);
+    } catch (err: any) {
+      setRegisterError(err.message);
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError("");
+    setOtpSuccess("");
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: registerEmail, otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "OTP salah");
+      setOtpSuccess("Email berhasil diverifikasi! Silakan login.");
+      setOtpDialogOpen(false);
+    } catch (err: any) {
+      setOtpError(err.message);
+    }
   };
 
   const handleGoogleRegister = async () => {
@@ -69,15 +131,55 @@ const RegisterPage = () => {
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             {method === "email" ? (
-              <TextField
-                label="Email"
-                type="email"
-                value={value}
-                onChange={e => setValue(e.target.value)}
-                fullWidth
-                required
-                autoComplete="email"
-              />
+              <>
+                <TextField
+                  label="Username"
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  fullWidth
+                  required
+                  autoComplete="username"
+                />
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={value}
+                  onChange={e => setValue(e.target.value)}
+                  fullWidth
+                  required
+                  autoComplete="email"
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  fullWidth
+                  required
+                  autoComplete="new-password"
+                />
+                <TextField
+                  label="Konfirmasi Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  fullWidth
+                  required
+                  autoComplete="new-password"
+                />
+                {registerError && <Alert severity="error">{registerError}</Alert>}
+                {registerSuccess && <Alert severity="success">{registerSuccess}</Alert>}
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  disabled={registerLoading}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  Daftar dengan Email
+                </Button>
+              </>
             ) : (
               <TextField
                 label="Nomor HP"
@@ -97,10 +199,32 @@ const RegisterPage = () => {
               disabled
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              Daftar dengan {method === "email" ? "Email" : "Nomor HP"} (Coming Soon)
+              Daftar dengan {method === "email" ? "Email" : "Nomor HP"}
             </Button>
           </Stack>
         </form>
+        <Dialog open={otpDialogOpen} onClose={() => setOtpDialogOpen(false)}>
+          <DialogTitle>Verifikasi Email</DialogTitle>
+          <form onSubmit={handleOtpSubmit}>
+            <DialogContent>
+              <Typography mb={2}>Masukkan kode OTP yang dikirim ke email kamu.</Typography>
+              <TextField
+                label="Kode OTP"
+                value={otp}
+                onChange={e => setOtp(e.target.value)}
+                fullWidth
+                required
+                autoFocus
+              />
+              {otpError && <Alert severity="error" sx={{ mt: 2 }}>{otpError}</Alert>}
+              {otpSuccess && <Alert severity="success" sx={{ mt: 2 }}>{otpSuccess}</Alert>}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOtpDialogOpen(false)}>Batal</Button>
+              <Button type="submit" variant="contained">Verifikasi</Button>
+            </DialogActions>
+          </form>
+        </Dialog>
         <Divider sx={{ my: 3 }}>atau</Divider>
         <Button
           variant="outlined"

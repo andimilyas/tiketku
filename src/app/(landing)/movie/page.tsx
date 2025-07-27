@@ -17,6 +17,12 @@ import SearchIcon from '@mui/icons-material/Search';
 import { useState, useEffect, ChangeEvent } from 'react';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../../../store/cartSlice';
+import { useSession } from 'next-auth/react';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Alert from '@mui/material/Alert';
 
 type MovieStatus = 'SEDANG_TAYANG' | 'SEBENTAR_LAGI';
 
@@ -71,6 +77,31 @@ function AddToCartButton({ id, name, price }: { id: string, name: string, price:
 }
 
 function MovieCard({ movie }: { movie: MovieProduct }) {
+  const { data: session, status } = useSession();
+  const [open, setOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleBooking = async () => {
+    setError(""); setSuccess(""); setLoading(true);
+    try {
+      const res = await fetch('/api/booking/movie', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: movie.id, quantity }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal booking');
+      setSuccess('Booking berhasil!');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardMedia
@@ -117,7 +148,30 @@ function MovieCard({ movie }: { movie: MovieProduct }) {
         <Typography variant="h6" fontWeight={700} color="primary" mt={2}>
           Rp {movie.price.toLocaleString()}
         </Typography>
-        <AddToCartButton id={movie.id} name={movie.title} price={movie.price} />
+        <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={() => setOpen(true)}>
+          Beli Tiket
+        </Button>
+        <Dialog open={open} onClose={() => setOpen(false)}>
+          <DialogTitle>Beli Tiket: {movie.title}</DialogTitle>
+          <DialogContent>
+            <TextField
+              label="Jumlah Tiket"
+              type="number"
+              value={quantity}
+              onChange={e => setQuantity(Number(e.target.value))}
+              fullWidth
+              inputProps={{ min: 1 }}
+              sx={{ my: 2 }}
+            />
+            {error && <Alert severity="error">{error}</Alert>}
+            {success && <Alert severity="success">{success}</Alert>}
+            {status !== 'authenticated' && <Alert severity="warning" sx={{ mt: 2 }}>Login & verifikasi email untuk booking.</Alert>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpen(false)}>Batal</Button>
+            <Button onClick={handleBooking} variant="contained" disabled={loading || status !== 'authenticated'}>Pesan</Button>
+          </DialogActions>
+        </Dialog>
       </CardContent>
     </Card>
   );

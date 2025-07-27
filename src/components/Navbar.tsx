@@ -47,7 +47,7 @@ import TwoWheelerIcon from '@mui/icons-material/TwoWheeler';
 import HolidayVillageIcon from '@mui/icons-material/HolidayVillage';
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 export default function Navbar() {
   const [anchorCart, setAnchorCart] = useState<null | HTMLElement>(null);
@@ -125,15 +125,20 @@ export default function Navbar() {
 
   // User menu
   const userMenu = [
-    { label: 'Pesananmu', icon: <AssignmentIcon fontSize="small" />, href: '/pesanan' },
+    { 
+      label: 'Pesananmu', 
+      icon: <AssignmentIcon fontSize="small" />, 
+      onClick: () => window.location.href = '/pesanan' 
+    },
     { label: 'Wishlist', icon: <FavoriteBorderIcon fontSize="small" />, href: '/wishlist' },
     { label: 'Profile', icon: <PersonOutlineIcon fontSize="small" />, href: '/profile' },
     { label: 'Pengaturan', icon: <SettingsIcon fontSize="small" />, href: '/pengaturan' },
     { label: 'Reviewmu', icon: <RateReviewIcon fontSize="small" />, href: '/review' },
-    { label: 'Logout', icon: <LogoutIcon fontSize="small" />, href: '/logout' },
+    { label: 'Logout', icon: <LogoutIcon fontSize="small" />, onClick: () => signOut({ callbackUrl: '/' }) },
   ];
 
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  console.log("Navbar session", session, status);
 
   // Popover handlers
   const handleCategoryOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -271,9 +276,7 @@ export default function Navbar() {
         {userMenu.map((item, idx) => (
           <ListItemButton
             key={item.label}
-            component={Link}
-            href={item.href}
-            onClick={handleUserClose}
+            onClick={item.onClick || handleUserClose}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.label} />
@@ -363,7 +366,7 @@ export default function Navbar() {
             <CartList />
           </Popover>
           {/* User/Login */}
-          {session ? (
+          {status === 'authenticated' ? (
             <>
               <IconButton
                 color="primary"

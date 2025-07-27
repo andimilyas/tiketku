@@ -16,21 +16,38 @@ import { signIn } from "next-auth/react";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
-  // Password field is not used for Google login, but included for future extensibility
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Handle Google login
   const handleGoogleLogin = async () => {
     setLoading(true);
     await signIn("google", { callbackUrl: "/" });
     setLoading(false);
   };
 
-  // Handle form submit (for email login, if implemented in the future)
+  // Fungsi ini secara umum sudah benar untuk handle login dengan NextAuth credentials.
+  // Namun, signIn dari next-auth tidak throw error jika login gagal, 
+  // melainkan mengembalikan object (bisa null/redirect). 
+  // Untuk feedback error ke user, sebaiknya cek hasil signIn.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // You can implement email/password login here if needed
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        callbackUrl: "/",
+        redirect: false, // supaya tidak auto redirect, bisa cek error
+      });
+      if (res?.error) {
+        // TODO: tampilkan error ke user, misal setError(res.error)
+        console.error("Login failed:", res.error);
+      } else if (res?.ok) {
+        // Redirect manual jika login sukses
+        window.location.href = res.url || "/";
+      }
+    } catch (error) {
+      console.error("Unexpected error during login:", error);
+    }
   };
 
   return (
@@ -53,23 +70,23 @@ const LoginPage: React.FC = () => {
               required
               autoComplete="email"
             />
-            {/* Password field is optional, since Google login is the main method */}
-            {/* <TextField
+            <TextField
               label="Password"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               fullWidth
+              required
               autoComplete="current-password"
-            /> */}
+            />
             <Button
               type="submit"
               variant="contained"
               color="primary"
-              disabled
+              onClick={handleSubmit}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              Masuk dengan Email (Coming Soon)
+              Masuk dengan Email
             </Button>
           </Stack>
         </form>

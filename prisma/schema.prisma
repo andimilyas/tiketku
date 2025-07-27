@@ -1,7 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  // HAPUS atau KOMENTARI baris output custom!
-  // output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -9,6 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ------------------- ENUM -------------------
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  BANK_TRANSFER
+  EWALLET
+}
+
+enum MovieStatus {
+  SEDANG_TAYANG
+  SEBENTAR_LAGI
+}
+
+// ------------------- AUTH -------------------
 model Account {
   id                 String  @id @default(cuid())
   userId             String
@@ -41,11 +64,13 @@ model User {
   email          String?  @unique
   emailVerified  DateTime?
   image          String?
+  password       String?
   accounts       Account[]
   sessions       Session[]
   createdAt DateTime  @default(now())
   bookings  Booking[]
   reviews   Review[]
+  role      String? @default("user")
 }
 
 model VerificationToken {
@@ -56,6 +81,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ------------------- PRODUCT -------------------
 model Vendor {
   id       String    @id @default(uuid())
   name     String
@@ -72,9 +98,11 @@ model Product {
   title        String
   description  String?
   location     String?
+  currency     String        @default("IDR") // Tambahan
   price        Decimal       @db.Decimal(10, 2)
   startDate    DateTime?
   endDate      DateTime?
+  capacity     Int?          // Tambahan untuk event/hotel
   createdAt    DateTime      @default(now())
   bookingItems BookingItem[]
   eventDetail  EventDetail?
@@ -86,16 +114,18 @@ model Product {
   movieDetail  MovieDetail?
 }
 
+// ------------------- BOOKING -------------------
 model Booking {
-  id          String       @id @default(uuid())
+  id          String         @id @default(uuid())
   userId      String
-  totalAmount Decimal      @db.Decimal(10, 2)
-  status      String
-  createdAt   DateTime     @default(now())
-  user        User         @relation(fields: [userId], references: [id])
+  totalAmount Decimal        @db.Decimal(10, 2)
+  status      BookingStatus  @default(PENDING)
+  createdAt   DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id])
   items       BookingItem?
   payment     Payment?
   tickets     Ticket?
+  passengers  Passenger[]    // Tambahan
 }
 
 model BookingItem {
@@ -108,16 +138,30 @@ model BookingItem {
   product   Product @relation(fields: [productId], references: [id])
 }
 
-model Payment {
-  id        String    @id @default(uuid())
-  bookingId String    @unique
-  method    String
-  status    String
-  amount    Decimal   @db.Decimal(10, 2)
-  paidAt    DateTime?
-  booking   Booking   @relation(fields: [bookingId], references: [id])
+model Passenger {
+  id        String   @id @default(uuid())
+  bookingId String
+  fullName  String
+  document  String?  // KTP atau paspor
+  seat      String?
+  booking   Booking  @relation(fields: [bookingId], references: [id])
 }
 
+// ------------------- PAYMENT -------------------
+model Payment {
+  id              String         @id @default(uuid())
+  bookingId       String         @unique
+  method          PaymentMethod
+  status          PaymentStatus  @default(PENDING)
+  amount          Decimal        @db.Decimal(10, 2)
+  currency        String         @default("IDR")
+  transactionId   String?        // Tambahan dari gateway
+  paidAt          DateTime?
+  paymentGateway  String?        // contoh: Midtrans
+  booking         Booking        @relation(fields: [bookingId], references: [id])
+}
+
+// ------------------- TICKET -------------------
 model Ticket {
   id         String   @id @default(uuid())
   bookingId  String   @unique
@@ -128,6 +172,7 @@ model Ticket {
   booking    Booking  @relation(fields: [bookingId], references: [id])
 }
 
+// ------------------- REVIEW -------------------
 model Review {
   id        String   @id @default(uuid())
   productId String   @unique
@@ -139,6 +184,7 @@ model Review {
   user      User     @relation(fields: [userId], references: [id])
 }
 
+// ------------------- PROMOTION -------------------
 model Promotion {
   id            String   @id @default(uuid())
   code          String   @unique
@@ -149,17 +195,32 @@ model Promotion {
   endDate       DateTime
 }
 
+// ------------------- AIRLINE ------------------
+model Airline {
+  id    String  @id @default(uuid())
+  name  String
+  iata  String?
+  icao  String?
+  logo  String?
+  flights FlightDetail[]
+}
+
+// ------------------- FLIGHT -------------------
 model FlightDetail {
-  id            String        @id @default(uuid())
-  productId     String        @unique
-  airline       String
-  flightNumber  String
-  departure     String
-  arrival       String
-  departureTime DateTime
-  arrivalTime   DateTime
-  classes       FlightClass[]
-  product       Product       @relation(fields: [productId], references: [id])
+  id                    String        @id @default(uuid())
+  productId             String        @unique
+  flightNumber          String        @unique
+  originAirportCode     String?
+  destinationAirportCode String?
+  departure             String
+  arrival               String
+  departureTime         DateTime
+  arrivalTime           DateTime
+  duration              String?       // PT2H30M
+  classes               FlightClass[]
+  airlineId             String
+  airline               Airline @relation(fields: [airlineId], references: [id])
+  product               Product       @relation(fields: [productId], references: [id])
 }
 
 model FlightClass {
@@ -171,6 +232,7 @@ model FlightClass {
   flightDetail   FlightDetail @relation(fields: [flightDetailId], references: [id])
 }
 
+// ------------------- HOTEL -------------------
 model HotelDetail {
   id         String  @id @default(uuid())
   productId  String  @unique
@@ -180,6 +242,7 @@ model HotelDetail {
   product    Product @relation(fields: [productId], references: [id])
 }
 
+// ------------------- EVENT -------------------
 model EventDetail {
   id        String   @id @default(uuid())
   productId String   @unique
@@ -189,17 +252,20 @@ model EventDetail {
   product   Product  @relation(fields: [productId], references: [id])
 }
 
+// ------------------- TRAIN -------------------
 model TrainDetail {
-  id               String       @id @default(uuid())
-  productId        String       @unique
-  trainName        String
-  trainNumber      String
-  departureStation String
-  arrivalStation   String
-  departureTime    DateTime
-  arrivalTime      DateTime
-  classes          TrainClass[]
-  product          Product      @relation(fields: [productId], references: [id])
+  id                  String       @id @default(uuid())
+  productId           String       @unique
+  trainName           String
+  trainNumber         String
+  departureStation    String
+  arrivalStation      String
+  departureTime       DateTime
+  arrivalTime         DateTime
+  duration            String?      // Tambahan
+  trainOperator       String?      // Tambahan
+  classes             TrainClass[]
+  product             Product      @relation(fields: [productId], references: [id])
 }
 
 model TrainClass {
@@ -211,10 +277,11 @@ model TrainClass {
   trainDetail   TrainDetail @relation(fields: [trainDetailId], references: [id])
 }
 
+// ------------------- MOVIE -------------------
 model MovieDetail {
-  id          String       @id @default(uuid())
+  id          String    @id @default(uuid())
   product     Product   @relation(fields: [productId], references: [id])
-  productId   String       @unique
+  productId   String    @unique
   duration    Int       // durasi dalam menit
   genre       String
   rating      String    // contoh: SU, R, PG-13
@@ -224,7 +291,10 @@ model MovieDetail {
   status      MovieStatus
 }
 
-enum MovieStatus {
-  SEDANG_TAYANG
-  SEBENTAR_LAGI
+model OtpToken {
+  id         String   @id @default(uuid())
+  email      String
+  otp        String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
 }
