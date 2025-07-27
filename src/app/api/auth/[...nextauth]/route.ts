@@ -33,6 +33,7 @@ export const authOptions: AuthOptions = {
           email: user.email,
           name: user.name,
           image: user.image,
+          role: user.role ?? undefined,
         };
       },
     }),
@@ -44,25 +45,25 @@ export const authOptions: AuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.picture = user.image;
-        token.role = (user as any).role;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
       console.log('[NextAuth] session callback:', { session, token });
-      // Attach id ke session agar Navbar bisa akses
-      if (session.user) {
-        (session.user as any).id = token?.id || null;
-        (session.user as any).email = token?.email || session.user.email;
-        (session.user as any).name = token?.name || session.user.name;
-        (session.user as any).image = token?.picture || session.user.image;
-        // Add 'role' property to session.user in a type-safe way
-        if (token?.role) {
-          (session.user as any).role = token.role;
-        }
-      }
-      return session;
-    },
+    
+      return {
+        ...session,
+        user: {
+          id: token?.id ?? null,
+          email: token?.email ?? session.user?.email ?? null,
+          name: token?.name ?? session.user?.name ?? null,
+          image: token?.picture ?? session.user?.image ?? null,
+          role: token?.role ?? 'user',
+        },
+      };
+    }
+    
   },
   session: {
     strategy: "jwt"

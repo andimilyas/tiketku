@@ -1,7 +1,25 @@
-import React from 'react';
+"use client"
+
+import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user.role !== "admin") {
+      router.replace("/unauthorized");
+    }
+  }, [status, session, router]);
+
+  // Jangan render dashboard sebelum status "authenticated" dan role admin
+  if (status === "loading" || (status === "authenticated" && session?.user.role !== "admin")) {
+    return null; // atau tampilkan spinner/loading
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -92,4 +110,4 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-} 
+}

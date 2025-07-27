@@ -1,6 +1,7 @@
 "use client"
 
 import React from 'react';
+import { useSession } from "next-auth/react";
 import { Drawer, List, ListItemIcon, ListItemText, Toolbar, Divider, ListItemButton } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InventoryIcon from '@mui/icons-material/Inventory';
@@ -36,7 +37,12 @@ const menuItems = [
 ];
 
 function Sidebar() {
+  const { data: session, status } = useSession();
   const [openProducts, setOpenProducts] = useState(false);
+
+  if (status === "loading" || (status === "authenticated" && session?.user.role !== "admin")) {
+    return null;
+  }
 
   const handleProductsClick = () => {
     setOpenProducts((prev) => !prev);
