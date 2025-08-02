@@ -298,3 +298,43 @@ model OtpToken {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
 }
+
+// ------------------- FLIGHT CACHE -------------------
+model FlightCache {
+  id                    String   @id @default(uuid())
+  flightNumber          String
+  airlineName           String
+  airlineIata           String?
+  airlineIcao           String?
+  airlineLogo           String?
+  originAirportCode     String
+  destinationAirportCode String
+  originAirportName     String?
+  destinationAirportName String?
+  departureTime         DateTime
+  arrivalTime           DateTime
+  duration              String?       // PT2H30M format
+  price                 Decimal       @db.Decimal(10, 2)
+  availableSeats        Int
+  class                 String        // economy, business, first
+  searchParams          Json          // Store original search parameters
+  cachedAt              DateTime      @default(now())
+  expiresAt             DateTime      // TTL for cache expiration
+  
+  @@index([originAirportCode, destinationAirportCode, departureTime])
+  @@index([cachedAt])
+  @@index([expiresAt])
+}
+
+model FlightSearchCache {
+  id           String   @id @default(uuid())
+  searchParams Json     // Store search parameters as JSON
+  searchHash   String   @unique // Hash of search params for quick lookup
+  results      Json     // Store flight results as JSON
+  cachedAt     DateTime @default(now())
+  expiresAt    DateTime // TTL for cache expiration
+  
+  @@index([searchHash])
+  @@index([cachedAt])
+  @@index([expiresAt])
+}

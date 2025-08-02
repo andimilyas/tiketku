@@ -1,88 +1,154 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
 
-const prisma = new PrismaClient();
+const createBookingSchema = z.object({
+  flightId: z.string(),
+  passengers: z.array(z.object({
+    type: z.enum(['adult', 'child', 'infant']),
+    title: z.enum(['Tuan', 'Nyonya', 'Nona']),
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    dateOfBirth: z.string(),
+    nationality: z.string(),
+    documentType: z.enum(['passport', 'ktp']),
+    documentNumber: z.string(),
+    documentExpiry: z.string().optional(),
+    seatPreference: z.string().optional(),
+    mealPreference: z.string().optional()
+  })),
+  contactInfo: z.object({
+    email: z.string().email(),
+    phone: z.string(),
+    countryCode: z.string()
+  }),
+  totalAmount: z.number().positive()
+});
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user || !session.user.email) {
-    return NextResponse.json({ error: 'Unauthorized. Please login.' }, { status: 401 });
-  }
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!user || !user.emailVerified) {
-    return NextResponse.json({ error: 'Email belum diverifikasi.' }, { status: 403 });
-  }
-  const bookings = await prisma.booking.findMany({
-    where: { userId: user.id },
-    include: {
-      items: { include: { product: true } },
-      payment: true,
-      tickets: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-  return NextResponse.json({ bookings });
-}
-
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
-    const { userId, flight, passengers } = body;
-
-    // Simpan FlightDetail (atau update jika flightNumber sama)
-    const flightDetail = await prisma.flightDetail.upsert({
-      where: { flightNumber: flight.flightNumber },
-      update: {},
-      create: {
-        product: {
-          create: {
-            vendor: { create: { name: flight.airline, type: 'airline' } },
-            category: 'flight',
-            title: `${flight.airline} ${flight.flightNumber}`,
-            price: flight.price,
-          },
-        },
-        airline: flight.airline,
-        flightNumber: flight.flightNumber,
-        originAirportCode: flight.origin,
-        destinationAirportCode: flight.destination,
-        departure: flight.departure,
-        arrival: flight.arrival,
-        departureTime: new Date(flight.departureTime),
-        arrivalTime: new Date(flight.arrivalTime),
-        duration: flight.duration,
-      },
-      include: { product: true },
-    });
-
-    // Buat Booking
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    const body = await request.json();
+    const validatedData = createBookingSchema.parse(body);
+    
+    // Create booking in database
     const booking = await prisma.booking.create({
       data: {
-        userId,
-        totalAmount: flight.price,
-        status: 'CONFIRMED',
+        userId: session.user.id,
+        totalAmount: validatedData.totalAmount,
+        status: 'PENDING',
         items: {
           create: {
-            productId: flightDetail.product.id,
-            price: flight.price,
-            quantity: 1,
-          },
+            productId: validatedData.flightId, // This would be your cached flight product ID
+            quantity: validatedData.passengers.length,
+            price: validatedData.totalAmount
+          }
         },
         passengers: {
-          create: passengers.map((p: any) => ({
-            fullName: p.fullName,
-            document: p.document,
-          })),
-        },
+          create: validatedData.passengers.map(passenger => ({
+            fullName: `${passenger.firstName} ${passenger.lastName}`,
+            document: passenger.documentNumber,
+            seat: passenger.seatPreference || null
+          }))
+        }
       },
-      include: { passengers: true, items: true },
+      include: {
+        items: true,
+        passengers: true
+      }
     });
-
-    return NextResponse.json(booking);
+    
+    // Generate ticket
+    const ticket = await prisma.ticket.create({
+      data: {
+        bookingId: booking.id,
+        ticketCode: `TXG-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        qrCodeUrl: null // Generate QR code URL here
+      }
+    });
+    
+    return NextResponse.json({
+      success: true,
+      booking: {
+        id: booking.id,
+        ticketCode: ticket.ticketCode,
+        status: booking.status,
+        totalAmount: booking.totalAmount,
+        passengers: booking.passengers
+      }
+    });
+    
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Booking failed' }, { status: 500 });
+    console.error('Create booking API error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid booking data', 
+          details: error.issues // Use 'issues' instead of 'errors'
+        },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { success: false, error: 'Failed to create booking' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    const bookings = await prisma.booking.findMany({
+      where: {
+        userId: session.user.id
+      },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        },
+        passengers: true,
+        tickets: true,
+        payment: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    return NextResponse.json({
+      success: true,
+      bookings
+    });
+    
+  } catch (error) {
+    console.error('Get bookings API error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to get bookings' },
+      { status: 500 }
+    );
   }
 }

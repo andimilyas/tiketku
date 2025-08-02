@@ -1,9 +1,9 @@
 'use client';
  // Icon keranjang dengan popover CartList
  import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
- import CartList from './CartList';
+//  import CartList from '../CartList';
  import { useSelector } from 'react-redux';
- import { RootState } from '../store';
+ import { RootState } from '../../store';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
@@ -51,7 +51,7 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 
 export default function Navbar() {
   const [anchorCart, setAnchorCart] = useState<null | HTMLElement>(null);
-  const cartItems = useSelector((state: RootState) => state.cart.cartItems);
+  // const cartItems = useSelector((state: RootState) => state.cart.cartItems);
  
   const handleCartOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorCart(event.currentTarget);
@@ -138,7 +138,6 @@ export default function Navbar() {
   ];
 
   const { data: session, status } = useSession();
-  console.log("Navbar session", session, status);
 
   // Popover handlers
   const handleCategoryOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -288,7 +287,7 @@ export default function Navbar() {
 
   return (
     <AppBar position="static" color="inherit" elevation={1} sx={{ zIndex: 1100 }}>
-      <Toolbar sx={{ justifyContent: 'space-between', minHeight: 64 }}>
+      <Toolbar sx={{ justifyContent: 'space-between', minHeight: 64, height: 80 }}>
         {/* Left: Logo + Center: Search (spaced with gap) */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -350,11 +349,6 @@ export default function Navbar() {
               <NotificationsNoneIcon />
             </Badge>
           </IconButton>
-          <IconButton color="primary" sx={{ borderRadius: 2 }} onClick={handleCartOpen} aria-label="Keranjang">
-            <Badge badgeContent={cartItems.length} color="error">
-              <ShoppingCartIcon />
-            </Badge>
-          </IconButton>
           <Popover
             open={Boolean(anchorCart)}
             anchorEl={anchorCart}
@@ -363,7 +357,7 @@ export default function Navbar() {
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             PaperProps={{ sx: { mt: 1, borderRadius: 2, minWidth: 320 } }}
           >
-            <CartList />
+            {/* <CartList /> */}
           </Popover>
           {/* User/Login */}
           {status === 'authenticated' ? (

@@ -38,11 +38,10 @@ export async function POST(req: NextRequest) {
   });
   // Kirim OTP ke email
   const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
+    host: 'gmail',
     auth: {
-      user: process.env.ETHEREAL_USER,
-      pass: process.env.ETHEREAL_PASS,
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
     },
   });
   await transporter.sendMail({

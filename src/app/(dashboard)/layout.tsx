@@ -1,4 +1,4 @@
-import Sidebar from '@/components/Sidebar';
+import Sidebar from '@/components/layout/Sidebar';
 import { ReactNode } from 'react';
 import SessionClientProvider from '@/components/SessionClientProvider';
 

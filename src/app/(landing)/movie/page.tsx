@@ -16,7 +16,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import { useState, useEffect, ChangeEvent } from 'react';
 import { useDispatch } from 'react-redux';
-import { addToCart } from '../../../store/cartSlice';
+import { addToCart } from '../../../store/slices/cartSlice';
 import { useSession } from 'next-auth/react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';

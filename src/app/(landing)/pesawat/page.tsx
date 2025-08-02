@@ -1,404 +1,341 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  Button,
-  Grid,
-  TextField,
-  MenuItem,
-  InputAdornment,
-  Container,
-} from "@mui/material";
-import LocalOfferIcon from '@mui/icons-material/LocalOffer';
-import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
-import FlightLandIcon from "@mui/icons-material/FlightLand";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import ImageBannerCarousel, { BannerItem } from "@/components/ImageBannerCarousel";
+import React from 'react';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { SnackbarProvider } from 'notistack';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline, Container, Box, CircularProgress, Typography } from '@mui/material';
+import { store, persistor } from '@/store';
+import { theme } from '@/lib/theme';
+import FlightSearchForm from '@/components/features/flight/FlightSearchForm';
+import { SessionProvider } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { FlightSearchParams } from '@/types/flight';
 
-const banners: BannerItem[] = [
-  {
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
-    title: 'Promo Tiket Konser 50% Off!',
-    description: 'Dapatkan diskon spesial untuk tiket konser pilihan minggu ini.',
-    cta: 'Lihat Promo',
-    href: '/promo/konser',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80',
-    title: 'Event Olahraga Terbaru',
-    description: 'Jangan lewatkan pertandingan seru dan booking tiketnya sekarang!',
-    cta: 'Jadwal Event',
-    href: '/olahraga',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80',
-    title: 'Liburan Hemat Bareng TixGo',
-    description: 'Nikmati berbagai destinasi wisata dengan harga terjangkau.',
-    cta: 'Cari Tiket',
-    href: '/wisata',
-  }
-];
+function FlightSearchPage() {
+  const router = useRouter();
 
-export default function PesawatPage() {
-  const [search, setSearch] = useState("");
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [flightClass, setFlightClass] = useState("");
-  const [date, setDate] = useState("");
-  const [flightTickets, setFlightTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const handleSearch = (params: FlightSearchParams) => {
+    // Build URL with search parameters
+    const urlParams = new URLSearchParams({
+      d: params.departure,
+      a: params.arrival,
+      date: params.departureDate,
+      adult: params.passengers.adults.toString(),
+      child: params.passengers.children.toString(),
+      infant: params.passengers.infants.toString(),
+      class: params.class,
+      dType: 'CITY',
+      aType: 'CITY',
+      dLabel: params.departure,
+      aLabel: params.arrival,
+      type: 'depart',
+      flexiFare: 'true'
+    });
 
-  useEffect(() => {
-    const fetchFlights = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/flights");
-        const data = await res.json();
-        setFlightTickets(data);
-      } catch (err) {
-        setFlightTickets([]);
-      }
-      setLoading(false);
-    };
-    fetchFlights();
-  }, []);
+    if (params.returnDate) {
+      urlParams.append('returnDate', params.returnDate);
+    }
 
-  // Generate filter options dari data dinamis
-  const allOrigins = Array.from(new Set(flightTickets.map((t) => t.flightDetail?.departure)));
-  const allDestinations = Array.from(new Set(flightTickets.map((t) => t.flightDetail?.arrival)));
-  const allClasses = Array.from(new Set(flightTickets.map((t) => t.flightDetail?.class)));
-
-  // Filter logic
-  const filteredTickets = flightTickets.filter((ticket) => {
-    const matchSearch =
-      (ticket.title?.toLowerCase() || "").includes(search.toLowerCase()) ||
-      (ticket.flightDetail?.airline?.toLowerCase() || "").includes(search.toLowerCase()) ||
-      (ticket.flightDetail?.departure?.toLowerCase() || "").includes(search.toLowerCase()) ||
-      (ticket.flightDetail?.arrival?.toLowerCase() || "").includes(search.toLowerCase());
-    const matchOrigin = origin ? ticket.flightDetail?.departure === origin : true;
-    const matchDestination = destination ? ticket.flightDetail?.arrival === destination : true;
-    const matchClass = flightClass ? ticket.flightDetail?.class === flightClass : true;
-    const matchDate = date ? ticket.flightDetail?.departureTime?.slice(0,10) === date : true;
-    return matchSearch && matchOrigin && matchDestination && matchClass && matchDate;
-  });
+    // Navigate to search page with parameters
+    router.push(`/pesawat/search?${urlParams.toString()}`);
+  };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f7fafc", py: 4 }}>
+    <Box
+      sx={{
+        position: 'relative',
+        backgroundImage: `url('/background/plane.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        minHeight: '65vh',
+        px: 2,
+        py: 6,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
       <Box
         sx={{
-          position: "relative",
-          minHeight: { xs: 320, md: 500 },
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          justifyContent: "center",
-          mb: 6,
-          px: 4,
-          overflow: "hidden",
+          position: 'absolute',
+          inset: 0,
+          width: '50%',
+          height: '100%',
+          background: 'linear-gradient(90deg, rgba(0, 0, 0, 0.7) 0%, rgba(0,0,0,0.0) 100%)',
+          zIndex: 1,
         }}
-      >
-        {/* Background Image */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 0,
-            "& img": {
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center"
-            },
-          }}
-        >
-          <img
-            src="https://plus.unsplash.com/premium_photo-1661962354730-cda54fa4f9f1?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-            alt="Pesawat"
-          />
-        </Box>
-
-        {/* Overlay gradient for better text contrast */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(90deg, rgba(0, 0, 0, 0.7) 0%, rgba(33,150,243,0.2) 70%, rgba(255,255,255,0.0) 100%)",
-            zIndex: 1,
-          }}
-        />
-
-        {/* Left: Headline */}
-        <Box
-          sx={{
-            position: "relative",
-            zIndex: 2,
-            color: "white",
-            textAlign: { xs: "center", md: "left" },
-            maxWidth: 420,
-            px: { xs: 2, md: 0 },
-          }}
-        >
-          <Typography
-            variant="h4"
-            fontWeight="bold"
-            sx={{
-              mb: 1,
-              fontSize: { xs: "1.5rem", md: "2.2rem" },
-              textShadow: "0 2px 8px rgba(0,0,0,0.25)",
-            }}
-          >
-            Pesan tiket pesawat<br />
-            dan jadwal<br />
+      />
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
+        <Box flex={1} sx={{ maxWidth: 500 }}>
+          <Typography variant="h3" fontWeight="bold" color="white">
+            Pesan tiket pesawat
+            dan jadwal
             penerbangan hari ini
           </Typography>
         </Box>
-
-        {/* Right: Search Card */}
         <Box
+          flex={1}
           sx={{
-            position: "relative",
-            zIndex: 2,
-            width: { xs: "90%", sm: 400 },
-            maxWidth: 420,
-            bgcolor: "white",
-            borderRadius: 3,
-            boxShadow: 6,
-            p: { xs: 2, sm: 3 },
-            ml: { xs: 0, md: 8 },
-            mt: { xs: 4, md: 0 },
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
+            p: 3,
+            width: '100%',
+            maxWidth: 600,
           }}
         >
-          {/* Simulasi notifikasi promo */}
-          <Box
-            sx={{
-              bgcolor: "#e3f2fd",
-              color: "#1976d2",
-              borderRadius: 2,
-              px: 2,
-              py: 1,
-              mb: 1,
-              fontSize: 14,
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-            }}
-          >
-            <Box
-              sx={{
-                width: 24,
-                height: 24,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mr: 1
-              }}
-            >
-              <LocalOfferIcon />
-            </Box>
-            <span>
-              Promo tiket pesawat! Dapatkan diskon hingga <b>Rp150.000</b> untuk rute tertentu 🎉
-            </span>
-          </Box>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                select
-                fullWidth
-                label="Dari"
-                value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                size="small"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <FlightTakeoffIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              >
-                <MenuItem value="">Pilih asal</MenuItem>
-                {allOrigins.map((o) => (
-                  <MenuItem key={o} value={o}>
-                    {o}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                select
-                fullWidth
-                label="Ke"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                size="small"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <FlightLandIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              >
-                <MenuItem value="">Pilih tujuan</MenuItem>
-                {allDestinations.map((d) => (
-                  <MenuItem key={d} value={d}>
-                    {d}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField
-                fullWidth
-                label="Tanggal"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                size="small"
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CalendarMonthIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField
-                select
-                fullWidth
-                label="Kelas"
-                value={flightClass}
-                onChange={(e) => setFlightClass(e.target.value)}
-                size="small"
-              >
-                <MenuItem value="">Semua</MenuItem>
-                {allClasses.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-          </Grid>
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            sx={{ mt: 2, borderRadius: 2, fontWeight: "bold" }}
-            fullWidth
-          >
-            Ayo Cari!
-          </Button>
+          <FlightSearchForm onSearch={handleSearch} />
         </Box>
-      </Box>
-
-      {/* Grid List Tiket Pesawat */}
-      <Box
-        sx={{
-          maxWidth: 1100,
-          mx: "auto",
-          px: 2,
-        }}
-      >
-        {loading ? (
-          <Box sx={{ textAlign: "center", mt: 8 }}>
-            <Typography variant="h6" color="text.secondary">
-              Memuat data penerbangan...
-            </Typography>
-          </Box>
-        ) : filteredTickets.length === 0 ? (
-          <Box sx={{ textAlign: "center", mt: 8 }}>
-            <Typography variant="h6" color="text.secondary">
-              Tidak ada tiket pesawat yang ditemukan.
-            </Typography>
-          </Box>
-        ) : (
-          <Grid container spacing={3}>
-            {filteredTickets.map((ticket) => (
-              <Grid size={{ md: 4, sm: 6, xs: 12 }} key={ticket.id}>
-                <Card elevation={3} sx={{ borderRadius: 3 }}>
-                  <CardContent>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      {/* Logo maskapai jika ada, fallback ke icon */}
-                      {ticket.vendor?.logo ? (
-                        <img
-                          src={ticket.vendor.logo}
-                          alt={ticket.vendor.name}
-                          style={{ width: 40, height: 40, objectFit: "contain", marginRight: 12 }}
-                        />
-                      ) : (
-                        <FlightTakeoffIcon sx={{ fontSize: 40, mr: 1 }} />
-                      )}
-                      <Typography variant="h6" fontWeight="bold">
-                        {ticket.flightDetail?.airline || ticket.vendor?.name || ticket.title}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <Typography variant="body1" fontWeight="bold">
-                        {ticket.flightDetail?.departure}
-                      </Typography>
-                      <span style={{ margin: "0 8px" }}>→</span>
-                      <Typography variant="body1" fontWeight="bold">
-                        {ticket.flightDetail?.arrival}
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {ticket.flightDetail?.departureTime ?
-                        new Date(ticket.flightDetail.departureTime).toLocaleDateString("id-ID", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        }) : ""}
-                      {ticket.flightDetail?.departureTime ? ` • ${ticket.flightDetail.departureTime.slice(11,16)}` : ""}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Kelas: {Array.isArray(ticket.flightDetail?.classes) && ticket.flightDetail.classes.length > 0
-                        ? ticket.flightDetail.classes.map((cls: any) => `${cls.className} (Rp ${Number(cls.price).toLocaleString('id-ID')}, kursi ${cls.seatCount})`).join(', ')
-                        : '-'}
-                    </Typography>
-                    <Typography variant="h6" color="primary" fontWeight="bold">
-                      Rp {ticket.price ? Number(ticket.price).toLocaleString("id-ID") : "-"}
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      sx={{ borderRadius: 2 }}
-                    >
-                      Pesan Sekarang
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </Box>
-
-      <Box sx={{ bgcolor: 'white', color: 'white', py: 6 }}>
-        <Container maxWidth="lg">
-        <ImageBannerCarousel banners={banners} />
-        </Container>
-      </Box>
+      </Container>
     </Box>
   );
 }
+
+export default function FlightsPage() {
+  return (
+    <SessionProvider>
+      <Provider store={store}>
+        <PersistGate
+          loading={
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+              <CircularProgress />
+            </Box>
+          }
+          persistor={persistor}
+        >
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <SnackbarProvider
+              maxSnack={3}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <FlightSearchPage />
+            </SnackbarProvider>
+          </ThemeProvider>
+        </PersistGate>
+      </Provider>
+    </SessionProvider>
+  );
+}
+
+// lib/validations/flight.ts
+import { z } from 'zod';
+
+export const flightSearchSchema = z.object({
+  departure: z.string().min(3).max(3, 'Kode bandara harus 3 karakter'),
+  arrival: z.string().min(3).max(3, 'Kode bandara harus 3 karakter'),
+  departureDate: z.date().refine(
+    (val) => val instanceof Date && !isNaN(val.getTime()),
+    { message: 'Tanggal keberangkatan wajib diisi' }
+  ),
+  returnDate: z.date().optional(),
+  passengers: z.object({
+    adults: z.number().min(1, 'Minimal 1 dewasa').max(9, 'Maksimal 9 penumpang'),
+    children: z.number().min(0).max(9, 'Maksimal 9 anak'),
+    infants: z.number().min(0).max(9, 'Maksimal 9 bayi'),
+  }),
+  class: z.enum(['economy', 'business', 'first']),
+  tripType: z.enum(['one-way', 'round-trip']),
+}).refine((data) => {
+  if (data.tripType === 'round-trip' && !data.returnDate) {
+    return false;
+  }
+  if (data.returnDate && data.departureDate >= data.returnDate) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Tanggal pulang harus setelah tanggal berangkat',
+  path: ['returnDate'],
+});
+
+export const passengerDetailSchema = z.object({
+  type: z.enum(['adult', 'child', 'infant']),
+  title: z.enum(['Tuan', 'Nyonya', 'Nona']),
+  firstName: z.string().min(1, 'Nama depan wajib diisi').max(50, 'Nama terlalu panjang'),
+  lastName: z.string().min(1, 'Nama belakang wajib diisi').max(50, 'Nama terlalu panjang'),
+  dateOfBirth: z.date().refine(
+    (val) => val instanceof Date && !isNaN(val.getTime()),
+    { message: 'Tanggal lahir wajib diisi' }
+  ),
+  nationality: z.string().min(1, 'Kewarganegaraan wajib diisi'),
+  documentType: z.enum(['passport', 'ktp']),
+  documentNumber: z.string().min(1, 'Nomor dokumen wajib diisi'),
+  documentExpiry: z.date().optional(),
+  seatPreference: z.string().optional(),
+  mealPreference: z.string().optional(),
+});
+
+export const contactInfoSchema = z.object({
+  email: z.string().email('Format email tidak valid'),
+  phone: z.string()
+    .min(8, 'Nomor telepon minimal 8 digit')
+    .max(15, 'Nomor telepon maksimal 15 digit')
+    .regex(/^\d+$/, 'Nomor telepon hanya boleh angka'),
+  countryCode: z.string().min(1, 'Kode negara wajib dipilih'),
+});
+
+// constants/airports.ts
+export const INDONESIAN_AIRPORTS = [
+  { code: 'CGK', name: 'Jakarta', airport: 'Soekarno-Hatta International Airport', city: 'Jakarta' },
+  { code: 'DPS', name: 'Denpasar', airport: 'Ngurah Rai International Airport', city: 'Bali' },
+  { code: 'JOG', name: 'Yogyakarta', airport: 'Adisutcipto Airport', city: 'Yogyakarta' },
+  { code: 'SRG', name: 'Semarang', airport: 'Ahmad Yani Airport', city: 'Semarang' },
+  { code: 'MLG', name: 'Malang', airport: 'Abdul Rachman Saleh Airport', city: 'Malang' },
+  { code: 'BDO', name: 'Bandung', airport: 'Husein Sastranegara Airport', city: 'Bandung' },
+  { code: 'MDN', name: 'Medan', airport: 'Kualanamu International Airport', city: 'Medan' },
+  { code: 'PLM', name: 'Palembang', airport: 'Sultan Mahmud Badaruddin II Airport', city: 'Palembang' },
+  { code: 'PKU', name: 'Pekanbaru', airport: 'Sultan Syarif Kasim II Airport', city: 'Pekanbaru' },
+  { code: 'BTH', name: 'Batam', airport: 'Hang Nadim Airport', city: 'Batam' },
+  { code: 'BPN', name: 'Balikpapan', airport: 'Sultan Aji Muhammad Sulaiman Airport', city: 'Balikpapan' },
+  { code: 'PKY', name: 'Palangkaraya', airport: 'Tjilik Riwut Airport', city: 'Palangkaraya' },
+  { code: 'UPG', name: 'Makassar', airport: 'Sultan Hasanuddin Airport', city: 'Makassar' },
+  { code: 'KDI', name: 'Kendari', airport: 'Haluoleo Airport', city: 'Kendari' },
+  { code: 'AMQ', name: 'Ambon', airport: 'Pattimura Airport', city: 'Ambon' },
+  { code: 'DJJ', name: 'Jayapura', airport: 'Sentani Airport', city: 'Jayapura' },
+];
+
+export const FLIGHT_CLASSES = [
+  { value: 'economy', label: 'Ekonomi', description: 'Kursi standar dengan layanan dasar' },
+  { value: 'business', label: 'Bisnis', description: 'Kursi lebih luas dengan layanan premium' },
+  { value: 'first', label: 'First Class', description: 'Kursi terbaik dengan layanan mewah' },
+];
+
+export const MEAL_PREFERENCES = [
+  { value: '', label: 'Standar' },
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'halal', label: 'Halal' },
+  { value: 'kosher', label: 'Kosher' },
+  { value: 'diabetic', label: 'Diabetik' },
+  { value: 'low-sodium', label: 'Rendah Garam' },
+  { value: 'gluten-free', label: 'Bebas Gluten' },
+];
+
+export const SEAT_PREFERENCES = [
+  { value: '', label: 'Tidak ada preferensi' },
+  { value: 'window', label: 'Jendela' },
+  { value: 'aisle', label: 'Lorong' },
+  { value: 'middle', label: 'Tengah' },
+];
+
+export const COUNTRY_CODES = [
+  { value: '+62', label: '+62 (Indonesia)', flag: '🇮🇩' },
+  { value: '+65', label: '+65 (Singapore)', flag: '🇸🇬' },
+  { value: '+60', label: '+60 (Malaysia)', flag: '🇲🇾' },
+  { value: '+1', label: '+1 (US/Canada)', flag: '🇺🇸' },
+  { value: '+44', label: '+44 (UK)', flag: '🇬🇧' },
+  { value: '+61', label: '+61 (Australia)', flag: '🇦🇺' },
+];
+
+// utils/date.ts
+import dayjs from 'dayjs';
+import 'dayjs/locale/id';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import duration from 'dayjs/plugin/duration';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(relativeTime);
+dayjs.extend(duration);
+dayjs.extend(timezone);
+dayjs.extend(utc);
+dayjs.locale('id');
+
+export const formatDate = (date: string | Date, format = 'DD MMM YYYY') => {
+  return dayjs(date).format(format);
+};
+
+export const formatTime = (time: string | Date, format = 'HH:mm') => {
+  return dayjs(time).format(format);
+};
+
+export const formatDateTime = (datetime: string | Date, format = 'DD MMM YYYY, HH:mm') => {
+  return dayjs(datetime).format(format);
+};
+
+export const getRelativeTime = (date: string | Date) => {
+  return dayjs(date).fromNow();
+};
+
+export const calculateDuration = (start: string | Date, end: string | Date) => {
+  const startTime = dayjs(start);
+  const endTime = dayjs(end);
+  const diff = endTime.diff(startTime);
+
+  const duration = dayjs.duration(diff);
+  const hours = Math.floor(duration.asHours());
+  const minutes = duration.minutes();
+
+  return `${hours}h ${minutes}m`;
+};
+
+export const isValidDate = (date: any) => {
+  return dayjs(date).isValid();
+};
+
+export const addDays = (date: string | Date, days: number) => {
+  return dayjs(date).add(days, 'day');
+};
+
+export const isBefore = (date1: string | Date, date2: string | Date) => {
+  return dayjs(date1).isBefore(dayjs(date2));
+};
+
+export const isAfter = (date1: string | Date, date2: string | Date) => {
+  return dayjs(date1).isAfter(dayjs(date2));
+};
+
+// utils/currency.ts
+export const formatCurrency = (amount: number, currency = 'IDR') => {
+  const formatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
+  return formatter.format(amount);
+};
+
+export const formatNumber = (number: number) => {
+  return new Intl.NumberFormat('id-ID').format(number);
+};
+
+export const parseCurrency = (value: string) => {
+  return parseInt(value.replace(/[^0-9]/g, ''));
+};
+
+// utils/flight.ts
+export const generateFlightId = (flightNumber: string, date: string) => {
+  return `${flightNumber}-${dayjs(date).format('YYYY-MM-DD')}`;
+};
+
+export const parseFlightId = (flightId: string) => {
+  const parts = flightId.split('-');
+  const flightNumber = parts[0];
+  const date = parts.slice(1).join('-');
+
+  return { flightNumber, date };
+};
+
+export const getFlightStatus = (departureTime: string | Date, arrivalTime: string | Date) => {
+  const now = dayjs();
+  const departure = dayjs(departureTime);
+  const arrival = dayjs(arrivalTime);
+
+  if (now.isBefore(departure)) {
+    return 'scheduled';
+  } else if (now.isAfter(departure) && now.isBefore(arrival)) {
+    return 'active';
+  } else if (now.isAfter(arrival)) {
+    return 'landed';
+  }
+
+  return 'scheduled';
+};
+
+export const calculateFlightDuration = (departureTime: string | Date, arrivalTime: string | Date) => {
+  return calculateDuration(departureTime, arrivalTime);
+};
