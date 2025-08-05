@@ -20,10 +20,16 @@ import {
   Alert,
   TextField,
   Chip,
-  Link
+  Link,
+  IconButton
 } from '@mui/material';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { CreditCard, AccountBalance, Payment, Flight } from '@mui/icons-material';
 import dayjs from 'dayjs';
+import TicketDetailCardModal from '@/components/features/flight/Modal/TicketDetailCardModal';
+import { ProcessedFlight } from '@/types/flight';
+import { formatCurrency } from '@/app/(landing)/pesawat/page';
 
 interface PaymentMethod {
   id: string;
@@ -115,11 +121,26 @@ export default function PaymentCheckoutPage() {
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
-
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [showPriceDetail, setShowPriceDetail] = useState(false);
   const bookingId = params.bookingId as string;
+  const adults = parseInt(searchParams.get('adult') || '1');
+  const children = parseInt(searchParams.get('child') || '0');
+  const infants = parseInt(searchParams.get('infant') || '0');
+
+  const passengerCounts= {
+    adult: adults,
+    child: children,
+    infant: infants,
+    total: adults + children + infants
+  };
+
+  const travelClass = searchParams.get('class') as 'economy' | 'business' | 'first';
 
 
   const order = useSelector((state: RootState) => state.booking.selectedFlight);
+
+  const selectedFlight = useSelector((state: RootState) => state.booking.selectedFlight);
 
   // Memoized city names
   const departureCity = useMemo(() =>
@@ -131,24 +152,6 @@ export default function PaymentCheckoutPage() {
     popularCities.find(city => city.code === order?.arrival?.iata)?.name,
     [order?.arrival?.iata]
   );
-
-  // Mock order data - in real app, fetch from API
-  // const orderData = {
-  //   id: bookingId,
-  //   type: 'flight', // flight, train, movie, etc.
-  //   items: [
-  //     {
-  //       name: 'Jakarta → Bali',
-  //       description: 'Garuda Indonesia GA-123',
-  //       quantity: 2,
-  //       price: 1500000,
-  //       total: 3000000
-  //     }
-  //   ],
-  //   subtotal: 3000000,
-  //   tax: 300000,
-  //   total: 3300000
-  // };
 
   const handlePaymentMethodChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedPaymentMethod(event.target.value);
@@ -169,6 +172,9 @@ export default function PaymentCheckoutPage() {
       // Handle payment error
     }
   };
+
+  const price = order?.price?.[travelClass] ?? 0;
+  const total = price * (passengerCounts?.total ?? 0);
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
@@ -341,9 +347,14 @@ export default function PaymentCheckoutPage() {
                     {dayjs(order?.arrival.time).format('ddd, DD MMM YYYY')}
                   </Typography>
                   <Box flex={1} />
-                  <Link href="#" fontSize={14} underline="hover" color="primary">
-                    Detail
-                  </Link>
+                  <Typography
+                      variant="body2"
+                      color="primary"
+                      sx={{ cursor: 'pointer', fontWeight: 600, my: 2 }}
+                      onClick={() => setModalOpen(true)}
+                    >
+                      Detail
+                    </Typography>
                 </Box>
 
                 {order && (
@@ -379,22 +390,108 @@ export default function PaymentCheckoutPage() {
                   </Box>
                 )}
 
-                <Box display="flex" justifyContent="space-between" alignItems="center" mt={4}>
-                  <Typography fontWeight={600}>
-                    Total Pembayaran
-                  </Typography>
-                  <Typography fontWeight={700} fontSize={18} color="primary">
-                    {Number(order?.price.economy).toLocaleString('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR'
-                    })}
-                  </Typography>
+                <Box mt={4}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography fontWeight={600}>
+                      Total Pembayaran
+                    </Typography>
+                    <Box display="flex" alignItems="center">
+                      <Typography fontWeight={700} fontSize={18} color="primary" mr={1}>
+                        {Number(order?.price?.[travelClass]).toLocaleString('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR'
+                        })}
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="text"
+                        sx={{
+                          minWidth: 0,
+                          p: 0.5,
+                          fontSize: 14,
+                          color: 'primary.main',
+                          borderRadius: 8,
+                          transition: 'background-color 0.2s, color 0.2s'
+                        }}
+                        onClick={() => setShowPriceDetail((prev) => !prev)}
+                      >
+                        {showPriceDetail ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+                      </Button>
+                    </Box>
+                  </Box>
+                  {showPriceDetail && (
+                    <Box
+                        sx={{
+                            animation: 'fadeInPriceDetail 0.4s ease',
+                            '@keyframes fadeInPriceDetail': {
+                                from: { opacity: 0, transform: 'translateY(-12px)' },
+                                to: { opacity: 1, transform: 'translateY(0)' }
+                            }
+                        }}
+                    >
+                        <Typography variant="subtitle2" my={2}>
+                            Detail Harga
+                        </Typography>
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                            <Typography variant="body2">
+                                Dewasa
+                                {passengerCounts?.adult > 1 ? ` (x${passengerCounts.adult})` : ' (x1)'}
+                            </Typography>
+                            <Typography variant="body2">
+                                {formatCurrency(price * (passengerCounts?.adult ?? 1))}
+                            </Typography>
+                        </Box>
+                        {passengerCounts?.child > 0 && (
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                                <Typography variant="body2">
+                                    Anak (x{passengerCounts.child})
+                                </Typography>
+                                <Typography variant="body2">
+                                    {formatCurrency(price * passengerCounts.child)}
+                                </Typography>
+                            </Box>
+                        )}
+                        {passengerCounts?.infant > 0 && (
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                                <Typography variant="body2">
+                                    Bayi (x{passengerCounts.infant})
+                                </Typography>
+                                <Typography variant="body2">
+                                    {formatCurrency(0)}
+                                </Typography>
+                            </Box>
+                        )}
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                            <Typography variant="body2">Pajak</Typography>
+                            <Typography variant="body2">Gratis</Typography>
+                        </Box>
+                        <Divider sx={{ my: 2 }} />
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                                Total Pembayaran
+                            </Typography>
+                            <Typography variant="subtitle1" fontWeight="bold" color="primary">
+                            {Number(order?.price?.[travelClass]).toLocaleString('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR'
+                        })}
+                            </Typography>
+                        </Box>
+                    </Box>
+                  )}
                 </Box>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
       </Container>
+      <TicketDetailCardModal
+          open={isModalOpen}
+          onClose={() => setModalOpen(false)}
+          flight={selectedFlight as ProcessedFlight}
+          passengerText={`${adults} Dewasa${children ? `, ${children} Anak` : ''}${infants ? `, ${infants} Bayi` : ''}`}
+          tripType={searchParams.get('tripType') === 'round-trip' ? 'round-trip' : 'one-way'}
+        />
     </Box>
   );
 } 

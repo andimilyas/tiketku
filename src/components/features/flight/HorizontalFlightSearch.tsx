@@ -1,24 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Box,
   TextField,
   Button,
   IconButton,
-  Divider,
   Typography,
-  Paper,
   InputAdornment,
   Menu,
   MenuItem,
-  ListItemText,
-  ListItemIcon,
-  Chip
+  Chip,
+  Grid
 } from '@mui/material';
 import {
-  Search,
   SwapHoriz,
   FlightTakeoff,
   FlightLand,
@@ -46,8 +42,8 @@ const popularCities = [
 ];
 
 const classLabels = {
-  economy: 'Ekonomi',
-  business: 'Bisnis',
+  economy: 'Economy',
+  business: 'Business',
   first: 'First Class'
 };
 
@@ -100,8 +96,8 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
     children: parseInt(urlChild || '') || previousSearchParams?.passengers?.children || 0,
     infants: parseInt(urlInfant || '') || previousSearchParams?.passengers?.infants || 0
   });
-  const [travelClass, setTravelClass] = useState<'economy' | 'business' | 'first'>(
-    (urlClass as 'economy' | 'business' | 'first') || previousSearchParams?.class || 'economy'
+  const [travelClass, setTravelClass] = useState<'economy' | 'business' | 'first class'>(
+    (urlClass as 'economy' | 'business' | 'first class') || previousSearchParams?.class || 'economy'
   );
   const [tripType] = useState<'one-way' | 'round-trip'>(
     urlReturnDate ? 'round-trip' : previousSearchParams?.tripType || 'one-way'
@@ -128,10 +124,31 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
       tripType
     };
 
-    dispatch(setSearchParams(searchParams));
-    await dispatch(searchFlights(searchParams));
+    // Build URL parameters
+    const urlParams = new URLSearchParams({
+      d: searchParams.departure,
+      a: searchParams.arrival,
+      date: searchParams.departureDate,
+      adult: searchParams.passengers.adults.toString(),
+      child: searchParams.passengers.children.toString(),
+      infant: searchParams.passengers.infants.toString(),
+      class: searchParams.class,
+      dType: 'CITY',
+      aType: 'CITY',
+      dLabel: searchParams.departure,
+      aLabel: searchParams.arrival,
+      type: 'depart',
+      flexiFare: 'true'
+    });
+    if (searchParams.returnDate) {
+      urlParams.append('returnDate', searchParams.returnDate);
+    }
 
-    // Call onSearch callback if provided
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', `/pesawat/search?${urlParams.toString()}`);
+    }
+
+    // Call onSearch callback if provided (this will handle the search)
     if (onSearch) {
       onSearch(searchParams);
     }
@@ -184,7 +201,8 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
   };
 
   const getPassengerDisplay = () => {
-    const classStr = classLabels[travelClass];
+    const classKey = travelClass === 'first class' ? 'first' : travelClass;
+    const classStr = classLabels[classKey as keyof typeof classLabels];
     return `${totalPassengers} penumpang, ${classStr}`;
   };
 
@@ -193,148 +211,191 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
       <Box
         sx={{
           boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
           backgroundColor: 'white',
           borderRadius: 3,
-          p: 2
+          p: 2,
+          width: '100%'
         }}
       >
-        {/* Departure City */}
-        <TextField
-          value={getCityDisplay(departure)}
-          onClick={(e) => setDepartureAnchor(e.currentTarget)}
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <FlightTakeoff sx={{ color: 'action.active', fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            sx: { cursor: 'pointer' }
-          }}
-          sx={{
-            minWidth: 120,
-            '& .MuiOutlinedInput-root': {
-              border: 'none',
-              borderRadius: 2,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              }
-            }
-          }}
-        />
-
-        {/* Swap Button */}
-        <IconButton
-          onClick={swapCities}
-          sx={{
-            backgroundColor: 'white',
-            padding: 0,
-            borderRadius: 1,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            '&:hover': {
-              backgroundColor: 'grey.50'
-            }
-          }}
+        <Grid
+          container
+          spacing={2}
+          alignItems="center"
         >
-          <SwapHoriz sx={{ fontSize: 20 }} />
-        </IconButton>
+          {/* Departure City */}
+          <Grid size={{ xs: 12, sm: 6, md: 'auto' }}>
+            <TextField
+              value={getCityDisplay(departure)}
+              onClick={(e) => setDepartureAnchor(e.currentTarget)}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FlightTakeoff sx={{ color: 'action.active', fontSize: 18 }} />
+                  </InputAdornment>
+                ),
+                sx: { cursor: 'pointer', height: 38 }
+              }}
+              sx={{
+                width: '100%',
+                '& .MuiOutlinedInput-root': {
+                  fontSize: 14,
+                  border: 'none',
+                  borderRadius: 2,
+                  height: 40,
+                  '&:hover': {
+                    backgroundColor: 'action.hover'
+                  }
+                },
+                '& .MuiInputBase-input': {
+                  py: 1
+                }
+              }}
+            />
+          </Grid>
 
-        {/* Arrival City */}
-        <TextField
-          value={getCityDisplay(arrival)}
-          onClick={(e) => setArrivalAnchor(e.currentTarget)}
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <FlightLand sx={{ color: 'action.active', fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            sx: { cursor: 'pointer' }
-          }}
-          sx={{
-            minWidth: 120,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              }
-            }
-          }}
-        />
+          {/* Swap Button */}
+          <Grid size={{ xs: 'auto' }} sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
+            <IconButton
+              onClick={swapCities}
+              sx={{
+                backgroundColor: 'white',
+                padding: 0,
+                borderRadius: 1,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  backgroundColor: 'grey.50'
+                }
+              }}
+            >
+              <SwapHoriz sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Grid>
 
-        {/* Date */}
-        <TextField
-          value={getDateDisplay()}
-          onClick={(e) => setDateAnchor(e.currentTarget)}
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <CalendarToday sx={{ color: 'action.active', fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            sx: { cursor: 'pointer' }
-          }}
-          sx={{
-            minWidth: 250,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              }
-            }
-          }}
-        />
+          {/* Arrival City */}
+          <Grid size={{ xs: 12, sm: 6, md: 'auto' }}>
+            <TextField
+              value={getCityDisplay(arrival)}
+              onClick={(e) => setArrivalAnchor(e.currentTarget)}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FlightLand sx={{ color: 'action.active', fontSize: 18 }} />
+                  </InputAdornment>
+                ),
+                sx: { cursor: 'pointer', height: 38 }
+              }}
+              sx={{
+                width: '100%',
+                '& .MuiOutlinedInput-root': {
+                  fontSize: 14,
+                  border: 'none',
+                  borderRadius: 2,
+                  height: 40,
+                  '&:hover': {
+                    backgroundColor: 'action.hover'
+                  }
+                },
+                '& .MuiInputBase-input': {
+                  py: 1
+                }
+              }}
+            />
+          </Grid>
 
-        {/* Passengers & Class */}
-        <TextField
-          value={getPassengerDisplay()}
-          onClick={(e) => setPassengerAnchor(e.currentTarget)}
-          InputProps={{
-            readOnly: true,
-            startAdornment: (
-              <InputAdornment position="start">
-                <Person sx={{ color: 'action.active', fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            sx: { cursor: 'pointer' }
-          }}
-          sx={{
-            minWidth: 180,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              }
-            }
-          }}
-        />
+          {/* Date */}
+          <Grid size={{ xs: 12, sm: 6, md: 'auto' }}>
+            <TextField
+              value={getDateDisplay()}
+              onClick={(e) => setDateAnchor(e.currentTarget)}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarToday sx={{ color: 'action.active', fontSize: 18 }} />
+                  </InputAdornment>
+                ),
+                sx: { cursor: 'pointer' }
+              }}
+              sx={{
+                minWidth: 200,
+                width: '100%',
+                '& .MuiOutlinedInput-root': {
+                  fontSize: 14,
+                  border: 'none',
+                  borderRadius: 2,
+                  height: 40,
+                  '&:hover': {
+                    backgroundColor: 'action.hover'
+                  }
+                },
+                '& .MuiInputBase-input': {
+                  py: 1
+                }
+              }}
+            />
+          </Grid>
 
-        {/* Search Button */}
-        <Button
-          variant="contained"
-          onClick={handleSearch}
-          sx={{
-            fontSize: 16,
-            textTransform: 'none',
-            height: '56px',
-            borderRadius: 2,
-            px: 5,
-            py: 1.5,
-            backgroundColor: 'primary.main',
-            color: 'white',
-            fontWeight: 'bold',
-            '&:hover': {
-              backgroundColor: 'primary.dark'
-            }
-          }}
-        >
-          Cari
-        </Button>
+          {/* Passengers & Class */}
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <TextField
+              value={getPassengerDisplay()}
+              onClick={(e) => setPassengerAnchor(e.currentTarget)}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Person sx={{ color: 'action.active', fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+                sx: { cursor: 'pointer' }
+              }}
+              sx={{
+                minWidth: 180,
+                width: '100%',
+                '& .MuiOutlinedInput-root': {
+                  fontSize: 14,
+                  border: 'none',
+                  borderRadius: 2,
+                  height: 40,
+                  '&:hover': {
+                    backgroundColor: 'action.hover'
+                  }
+                },
+                '& .MuiInputBase-input': {
+                  py: 1
+                }
+              }}
+            />
+          </Grid>
+
+          {/* Search Button */}
+          <Grid sx={{ xs: 12, md: 'auto' }}>
+            <Button
+              variant="contained"
+              onClick={handleSearch}
+              sx={{
+                fontSize: 16,
+                textTransform: 'none',
+                height: 40,
+                borderRadius: 2,
+                px: 5,
+                py: 1.5,
+                backgroundColor: 'primary.main',
+                color: 'white',
+                fontWeight: 'bold',
+                width: { xs: '100%', md: 'auto' },
+                '&:hover': {
+                  backgroundColor: 'primary.dark'
+                }
+              }}
+              fullWidth
+            >
+              Cari
+            </Button>
+          </Grid>
+        </Grid>
       </Box>
 
       {/* Departure City Menu */}
@@ -343,7 +404,7 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
         open={Boolean(departureAnchor)}
         onClose={() => setDepartureAnchor(null)}
         PaperProps={{
-          sx: { maxHeight: 300 }
+          sx: { minWidth: 300, maxHeight: 400, borderRadius: 3, p: 2 }
         }}
       >
         {popularCities.map((city) => (
@@ -372,7 +433,7 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
         open={Boolean(arrivalAnchor)}
         onClose={() => setArrivalAnchor(null)}
         PaperProps={{
-          sx: { maxHeight: 300 }
+          sx: { minWidth: 300, maxHeight: 400, borderRadius: 3, p: 2 }
         }}
       >
         {popularCities.map((city) => (
@@ -401,10 +462,10 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
         open={Boolean(dateAnchor)}
         onClose={() => setDateAnchor(null)}
         PaperProps={{
-          sx: { minWidth: 400, p: 2 }
+          sx: { minWidth: 320, maxHeight: 400, borderRadius: 3, p: 2 }
         }}
       >
-        <Typography variant="h6" sx={{ mb: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
           Pilih Tanggal
         </Typography>
 
@@ -457,10 +518,10 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
         open={Boolean(passengerAnchor)}
         onClose={() => setPassengerAnchor(null)}
         PaperProps={{
-          sx: { minWidth: 300, p: 2 }
+          sx: { minWidth: 320, maxHeight: 400, borderRadius: 3, p: 2 }
         }}
       >
-        <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
           Atur Penumpang & Kelas
         </Typography>
 
@@ -516,7 +577,7 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
               label={classType.label}
               clickable
               onClick={() => {
-                setTravelClass(classType.value as 'economy' | 'business' | 'first');
+                setTravelClass(classType.value as 'economy' | 'business' | 'first class');
                 setPassengerAnchor(null);
               }}
               color={travelClass === classType.value ? 'primary' : 'default'}
@@ -528,3 +589,5 @@ export default function HorizontalFlightSearch({ onSearch }: HorizontalFlightSea
     </LocalizationProvider>
   );
 }
+
+

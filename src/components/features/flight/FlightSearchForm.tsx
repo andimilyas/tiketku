@@ -10,17 +10,13 @@ import {
   Card,
   CardContent,
   Grid,
-  TextField,
   Button,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  RadioGroup,
   FormControlLabel,
-  Radio,
   Typography,
-  Chip,
   IconButton,
   Switch,
   InputAdornment
@@ -28,15 +24,15 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { FlightTakeoff, FlightLand, SwapHoriz, Add, Remove, Person } from '@mui/icons-material';
-import dayjs, { Dayjs } from 'dayjs';
+import { FlightTakeoff, FlightLand, SwapHoriz, Person } from '@mui/icons-material';
+import dayjs from 'dayjs';
 import { useDispatch } from 'react-redux';
 import { setSearchParams, searchFlights } from '@/store/slices/searchSlice';
 
 import { AppDispatch } from '@/store';
 import { FlightSearchParams } from '@/types/flight';
 
-import PassengersClassModal from './PassengersClassModal';
+import PassengersClassModal from './Modal/PassengersClassModal';
 
 const searchSchema = z.object({
   departure: z.string().min(1, 'Departure city is required'),
@@ -95,6 +91,7 @@ export default function FlightSearchForm({ onSearch }: FlightSearchFormProps) {
   const onSubmit = async (data: SearchFormData) => {
     const searchParams: FlightSearchParams = {
       ...data,
+      class: data.class === 'first' ? 'first class' : data.class,
       departureDate: dayjs(data.departureDate).format('YYYY-MM-DD'),
       returnDate: data.returnDate ? dayjs(data.returnDate).format('YYYY-MM-DD') : undefined
     };
@@ -319,3 +316,4 @@ export default function FlightSearchForm({ onSearch }: FlightSearchFormProps) {
     </LocalizationProvider>
   );
 }
+

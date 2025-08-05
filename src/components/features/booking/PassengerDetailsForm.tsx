@@ -17,7 +17,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider,
   Alert,
   Accordion,
   AccordionSummary,
@@ -27,7 +26,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { ExpandMore, Person, Email, Phone } from '@mui/icons-material';
+import { ExpandMore, Person, Email } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { RootState, AppDispatch } from '@/store';
 import { 
@@ -36,7 +35,7 @@ import {
   proceedToPayment,
   goBackStep
 } from '@/store/slices/bookingSlice';
-import { PassengerDetail, ContactInfo } from '@/types/flight';
+import { PassengerDetail } from '@/types/flight';
 
 const passengerSchema = z.object({
   type: z.enum(['adult', 'child', 'infant']),
@@ -70,7 +69,6 @@ export default function PassengerDetailsForm() {
   const { 
     searchParams, 
     selectedFlight, 
-    passengerDetails, 
     contactInfo 
   } = useSelector((state: RootState) => state.booking);
 

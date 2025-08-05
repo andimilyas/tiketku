@@ -37,6 +37,9 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs from 'dayjs';
 import { Flight } from '@mui/icons-material';
+import type { ProcessedFlight } from '@/types/flight';
+
+import TicketDetailCardModal from '@/components/features/flight/Modal/TicketDetailCardModal';
 
 // Memoized schema untuk menghindari re-creation
 const passengerSchema = z.object({
@@ -94,7 +97,7 @@ const AirlineLogo = React.memo(({ airline }: { airline: { name: string; iata: st
         component="img"
         src={`/airlines/${airline.iata.toLowerCase()}.png`}
         alt={airline.name}
-        sx={{ width: 40, height: 40, objectFit: 'contain' }}
+        sx={{ width: 80, height: 80, objectFit: 'contain' }}
         onError={() => setImageError(true)}
       />
     );
@@ -106,7 +109,7 @@ const AirlineLogo = React.memo(({ airline }: { airline: { name: string; iata: st
         component="img"
         src={`/airlines/${airline.iata.toLowerCase()}.svg`}
         alt={airline.name}
-        sx={{ width: 40, height: 40, objectFit: 'contain' }}
+        sx={{ width: 80, height: 80, objectFit: 'contain' }}
         onError={() => setSvgError(true)}
       />
     );
@@ -269,10 +272,29 @@ export default function PassengerDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [isModalOpen, setModalOpen] = useState(false);
+
   const flightId = params.flightId as string;
   const adults = parseInt(searchParams.get('adult') || '1');
   const children = parseInt(searchParams.get('child') || '0');
   const infants = parseInt(searchParams.get('infant') || '0');
+
+  const travelClass = useMemo(() => (
+    (searchParams.get('class') || searchParams.get('travelClass') || 'economy') as 'economy' | 'business' | 'first'
+  ), [searchParams]);
+
+  const flight = useSelector((state: RootState) => state.booking.selectedFlight);
+
+  // Memoized computed values
+  const passengerCounts = useMemo(() => {
+    const adults = parseInt(searchParams.get('adults') || searchParams.get('adult') || '1');
+    const children = parseInt(searchParams.get('child') || '0');
+    const infants = parseInt(searchParams.get('infant') || '0');
+    return { adults, children, infants, total: adults + children + infants };
+  }, [searchParams]);
+
+  const formatCurrency = (amount: number) =>
+    Number(amount).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' });
 
   // Memoized selector
   const selectedFlight = useSelector((state: RootState) => state.booking.selectedFlight);
@@ -349,23 +371,33 @@ export default function PassengerDetailsPage() {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Skeleton variant="text" height={40} width={200} />
-            <Skeleton variant="rectangular" height={400} sx={{ mt: 2 }} />
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          position: 'relative',
+          py: 4,
+          overflow: 'hidden',
+          minHeight: '100vh'
+        }}
+      >
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Skeleton variant="text" height={40} width={200} />
+              <Skeleton variant="rectangular" height={400} sx={{ mt: 2 }} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Skeleton variant="rectangular" height={300} />
+            </Grid>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Skeleton variant="rectangular" height={300} />
-          </Grid>
-        </Grid>
-      </Container>
+        </Container>
+      </Box>
     );
   }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ backgroundColor: '#ffffff', position: 'relative', py: 4,  }}>
+      <Box sx={{ backgroundColor: '#ffffff', position: 'relative', py: 4, }}>
         <Box
           sx={{
             position: 'absolute',
@@ -418,86 +450,86 @@ export default function PassengerDetailsPage() {
                   Detail kontak ini akan digunakan untuk pengiriman e-tiket dan keperluan refund/reschedule.
                 </Typography>
 
-                <Card sx={{ boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px' , borderRadius: 2 }}>
+                <Card sx={{ boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px', borderRadius: 2 }}>
                   <CardContent>
-                  <Box sx={{ p: 1.5 }}>
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 12 }}>
-                        <Controller
-                          name="contactInfo.title"
-                          control={control}
-                          render={({ field }) => (
-                            <RadioGroup row {...field} value={field.value || 'Tuan'}>
-                              <FormControlLabel value="Tuan" control={<Radio />} label="Tuan" />
-                              <FormControlLabel value="Nyonya" control={<Radio />} label="Nyonya" />
-                              <FormControlLabel value="Nona" control={<Radio />} label="Nona" />
-                            </RadioGroup>
-                          )}
-                        />
-                      </Grid>
+                    <Box sx={{ p: 1.5 }}>
+                      <Grid container spacing={2}>
+                        <Grid size={{ xs: 12 }}>
+                          <Controller
+                            name="contactInfo.title"
+                            control={control}
+                            render={({ field }) => (
+                              <RadioGroup row {...field} value={field.value || 'Tuan'}>
+                                <FormControlLabel value="Tuan" control={<Radio />} label="Tuan" />
+                                <FormControlLabel value="Nyonya" control={<Radio />} label="Nyonya" />
+                                <FormControlLabel value="Nona" control={<Radio />} label="Nona" />
+                              </RadioGroup>
+                            )}
+                          />
+                        </Grid>
 
-                      <Grid size={{ xs: 12 }}>
-                        <Controller
-                          name="contactInfo.name"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              label="Nama Lengkap"
-                              fullWidth
-                              error={!!errors.contactInfo?.name}
-                              helperText={errors.contactInfo?.name?.message}
-                            />
-                          )}
-                        />
-                      </Grid>
+                        <Grid size={{ xs: 12 }}>
+                          <Controller
+                            name="contactInfo.name"
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                label="Nama Lengkap"
+                                fullWidth
+                                error={!!errors.contactInfo?.name}
+                                helperText={errors.contactInfo?.name?.message}
+                              />
+                            )}
+                          />
+                        </Grid>
 
-                      <Grid size={{ xs: 12 }}>
-                        <Controller
-                          name="contactInfo.phone"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              label="Nomor Telepon"
-                              fullWidth
-                              error={!!errors.contactInfo?.phone}
-                              helperText={errors.contactInfo?.phone?.message}
-                            />
-                          )}
-                        />
-                      </Grid>
+                        <Grid size={{ xs: 12 }}>
+                          <Controller
+                            name="contactInfo.phone"
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                label="Nomor Telepon"
+                                fullWidth
+                                error={!!errors.contactInfo?.phone}
+                                helperText={errors.contactInfo?.phone?.message}
+                              />
+                            )}
+                          />
+                        </Grid>
 
-                      <Grid size={{ xs: 12 }}>
-                        <Controller
-                          name="contactInfo.email"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              label="Alamat Email"
-                              fullWidth
-                              error={!!errors.contactInfo?.email}
-                              helperText={errors.contactInfo?.email?.message}
-                            />
-                          )}
-                        />
-                      </Grid>
-                    </Grid></Box>
+                        <Grid size={{ xs: 12 }}>
+                          <Controller
+                            name="contactInfo.email"
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                label="Alamat Email"
+                                fullWidth
+                                error={!!errors.contactInfo?.email}
+                                helperText={errors.contactInfo?.email?.message}
+                              />
+                            )}
+                          />
+                        </Grid>
+                      </Grid></Box>
 
                   </CardContent>
                 </Card>
-                    <Box display="flex" gap={2} mt={3}>
-                      <Button
-                        sx={{ textTransform: 'none', flex: 1, borderRadius: 2 }}
-                        type="submit"
-                        variant="contained"
-                        size="large"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Processing...' : 'Lanjut ke Pembayaran'}
-                      </Button>
-                    </Box>
+                <Box display="flex" gap={2} mt={3}>
+                  <Button
+                    sx={{ textTransform: 'none', flex: 1, borderRadius: 2 }}
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Processing...' : 'Lanjut ke Pembayaran'}
+                  </Button>
+                </Box>
               </form>
             </Grid>
 
@@ -518,9 +550,14 @@ export default function PassengerDetailsPage() {
                       {dayjs(selectedFlight?.arrival.time).format('ddd, DD MMM YYYY')}
                     </Typography>
                     <Box flex={1} />
-                    <Link href="#" fontSize={14} underline="hover" color="primary">
+                    <Typography
+                      variant="body2"
+                      color="primary"
+                      sx={{ cursor: 'pointer', fontWeight: 600, my: 2 }}
+                      onClick={() => setModalOpen(true)}
+                    >
                       Detail
-                    </Link>
+                    </Typography>
                   </Box>
 
                   {selectedFlight && (
@@ -561,10 +598,7 @@ export default function PassengerDetailsPage() {
                       Total Pembayaran
                     </Typography>
                     <Typography fontWeight={700} fontSize={18} color="primary">
-                      {Number(selectedFlight?.price.economy).toLocaleString('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR'
-                      })}
+                      {formatCurrency((flight?.price?.[travelClass] ?? 0) * (passengerCounts?.total ?? 0))}
                     </Typography>
                   </Box>
                 </CardContent>
@@ -572,6 +606,13 @@ export default function PassengerDetailsPage() {
             </Grid>
           </Grid>
         </Container>
+        <TicketDetailCardModal
+          open={isModalOpen}
+          onClose={() => setModalOpen(false)}
+          flight={selectedFlight as ProcessedFlight}
+          passengerText={`${adults} Dewasa${children ? `, ${children} Anak` : ''}${infants ? `, ${infants} Bayi` : ''}`}
+          tripType={searchParams.get('tripType') === 'round-trip' ? 'round-trip' : 'one-way'}
+        />
       </Box>
     </LocalizationProvider>
   );

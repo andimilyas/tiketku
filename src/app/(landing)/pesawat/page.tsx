@@ -25,7 +25,7 @@ function FlightSearchPage() {
       adult: params.passengers.adults.toString(),
       child: params.passengers.children.toString(),
       infant: params.passengers.infants.toString(),
-      class: params.class,
+      class: params.class === 'first class' ? 'first' : params.class,
       dType: 'CITY',
       aType: 'CITY',
       dLabel: params.departure,

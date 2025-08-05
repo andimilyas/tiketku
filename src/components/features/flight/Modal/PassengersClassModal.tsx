@@ -12,6 +12,7 @@ import {
   Chip
 } from '@mui/material';
 import { Add, Remove } from '@mui/icons-material';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface Props {
   open: boolean;
@@ -35,8 +36,19 @@ const PassengersClassModal: React.FC<Props> = ({
   onChangeClass
 }) => {
   return (
-    <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>Atur Penumpang & Kelas</DialogTitle>
+    <Dialog open={open} onClose={onClose} fullWidth PaperProps={{
+      sx: { borderRadius: 2 }
+  }}>
+      <DialogTitle sx={{ pb: 3 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant='h6' fontWeight="bold" flex={1}>
+                    Atur Penumpang & Kelas
+                    </Typography>
+                    <IconButton onClick={onClose} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
+            </DialogTitle>
       <DialogContent dividers>
       <Typography variant="h6" mb={1}>Penumpang</Typography>
         {(['adults', 'children', 'infants'] as const).map((type) => (

@@ -9,7 +9,7 @@ export interface FlightSearchParams {
     children: number;
     infants: number;
   };
-  class: 'economy' | 'business' | 'first';
+  class: 'economy' | 'business' | 'first class';
   tripType: 'one-way' | 'round-trip';
 }
 
@@ -66,6 +66,7 @@ export interface AviationStackFlight {
 }
 
 export interface ProcessedFlight {
+  class: any;
   id: string;
   flightNumber: string;
   airline: {
@@ -126,6 +127,8 @@ export interface FlightSearchResponse {
 
 // types/booking.ts
 export interface BookingState {
+  byId?: Record<string, any>;
+  latestSuccess?: any;
   currentStep: 'search' | 'select' | 'details' | 'payment' | 'confirmation';
   searchParams: FlightSearchParams | null;
   selectedFlight: ProcessedFlight | null;
@@ -140,7 +143,7 @@ export interface BookingState {
 
 export interface PassengerDetail {
   id: string;
-  type: 'adult' | 'child' | 'infant';
+  type: 'adults' | 'children' | 'infants';
   title: 'Tuan' | 'Nyonya' | 'Nona';
   firstName: string;
   lastName: string;

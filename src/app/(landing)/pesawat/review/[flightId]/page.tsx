@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store';
 import { fetchFlightById, setSearchParams } from '@/store/slices/bookingSlice';
 import ArrowCircleRightRoundedIcon from '@mui/icons-material/ArrowCircleRightRounded';
-import { FlightSearchParams, ProcessedFlight } from '@/types/flight';
+import { FlightSearchParams } from '@/types/flight';
 import {
   Container,
   Card,
@@ -16,21 +16,13 @@ import {
   Button,
   Chip,
   Alert,
-  CircularProgress,
-  Skeleton
+  Skeleton,
+  Stack,
+  Divider
 } from '@mui/material';
-import { FlightTakeoff, AirlineSeatReclineNormal, Flight } from '@mui/icons-material';
-import dayjs from 'dayjs';
 
-// Memoized constants
-const STATUS_CONFIG = {
-  scheduled: { color: 'success' as const, text: 'Terjadwal' },
-  active: { color: 'primary' as const, text: 'Aktif' },
-  landed: { color: 'info' as const, text: 'Mendarat' },
-  cancelled: { color: 'error' as const, text: 'Dibatalkan' },
-  incident: { color: 'warning' as const, text: 'Insiden' },
-  diverted: { color: 'warning' as const, text: 'Dialihkan' },
-} as const;
+import TicketDetailModal from '@/components/features/flight/Modal/TicketClassModal';
+import TicketDetailCard from '@/components/features/flight/TicketDetailCard';
 
 const POPULAR_CITIES = [
   { code: 'CGK', name: 'Jakarta', airport: 'Soekarno-Hatta' },
@@ -41,255 +33,113 @@ const POPULAR_CITIES = [
   { code: 'BDO', name: 'Bandung', airport: 'Husein Sastranegara' }
 ];
 
-// Utility functions
-const getStatusConfig = (status: ProcessedFlight['status']) => 
-  STATUS_CONFIG[status] || { color: 'default' as const, text: 'Tidak Diketahui' };
-
-const formatDuration = (duration: string) => {
-  const match = duration.match(/PT(\d+)H(\d+)?M?/);
-  if (match) {
-    const hours = match[1];
-    const minutes = match[2] || '0';
-    return `${hours}j ${minutes}m`;
-  }
-  return duration;
-};
-
-const formatCurrency = (amount: number) => 
+const formatCurrency = (amount: number) =>
   Number(amount).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' });
 
-// Memoized components
-const AirlineLogo = React.memo(({ airline }: { airline: { name: string; iata: string } }) => {
-  const [imageError, setImageError] = useState(false);
-  const [svgError, setSvgError] = useState(false);
-
-  const handleImageError = useCallback(() => setImageError(true), []);
-  const handleSvgError = useCallback(() => setSvgError(true), []);
-
-  if (!imageError) {
-    return (
-      <Box
-        component="img"
-        src={`/airlines/${airline.iata.toLowerCase()}.png`}
-        alt={airline.name}
-        sx={{ width: 40, height: 40, objectFit: 'contain' }}
-        onError={handleImageError}
-      />
-    );
-  }
-
-  if (!svgError) {
-    return (
-      <Box
-        component="img"
-        src={`/airlines/${airline.iata.toLowerCase()}.svg`}
-        alt={airline.name}
-        sx={{ width: 40, height: 40, objectFit: 'contain' }}
-        onError={handleSvgError}
-      />
-    );
-  }
-
-  return <Flight sx={{ width: 40, height: 40, color: 'primary.main' }} />;
-});
-
-const FlightTimeline = React.memo(({ flight }: { flight: ProcessedFlight }) => (
-  <Box display="flex" flexDirection="row" alignItems="stretch" mt={1}>
-    {/* Stepper Line and Icons */}
+const LoadingSkeleton = () => (
+  <Box
+    sx={{
+      backgroundColor: '#ffffff',
+      position: 'relative',
+      py: 4,
+      overflow: 'hidden',
+      minHeight: '100vh'
+    }}
+  >
+    {/* Background */}
     <Box
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        minWidth: 40,
-        mr: 2,
-      }}
-    >
-      {/* Departure Dot */}
-      <Box
-        sx={{
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          backgroundColor: '#888',
-          mb: 0.5,
-          border: '2px solid #fff',
-          zIndex: 1,
-        }}
-      />
-      {/* Vertical Line */}
-      <Box
-        sx={{
-          flex: 1,
-          width: 0,
-          minHeight: 32,
-          borderRight: '1px dashed #888',
-          mx: 'auto',
-        }}
-      />
-      {/* Flight Icon */}
-      <FlightTakeoff sx={{ fontSize: 24, color: 'GrayText', my: 0.5 }} />
-      {/* Vertical Line */}
-      <Box
-        sx={{
-          flex: 1,
-          width: 0,
-          minHeight: 32,
-          borderRight: '1px dashed #888',
-          mx: 'auto',
-        }}
-      />
-      {/* Arrival Dot */}
-      <Box
-        sx={{
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          backgroundColor: '#888',
-          mt: 0.5,
-          border: '2px solid #fff',
-          zIndex: 1,
-        }}
-      />
-    </Box>
-    {/* Stepper Content */}
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-      {/* Departure Info */}
-      <Box mb={3}>
-        <Typography variant="h6" fontWeight="bold">
-          {dayjs(flight.departure.time).format('HH:mm')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {flight.departure.airport}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {flight.departure.iata}
-        </Typography>
-      </Box>
-      {/* Duration Info */}
-      <Box mb={3} display="flex" alignItems="center" gap={1}>
-        <Typography variant="caption" color="text.secondary">
-          Durasi: {formatDuration(flight.duration)}
-        </Typography>
-      </Box>
-      {/* Arrival Info */}
-      <Box>
-        <Typography variant="h6" fontWeight="bold">
-          {dayjs(flight.arrival.time).format('HH:mm')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {flight.arrival.airport}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {flight.arrival.iata}
-        </Typography>
-      </Box>
-    </Box>
-  </Box>
-));
-
-const FlightDetailsCard = React.memo(({ flight }: { flight: ProcessedFlight }) => {
-  const statusConfig = getStatusConfig(flight.status);
-
-  return (
-    <Card
-      variant='elevation'
-      elevation={2}
-      sx={{
-        backgroundImage: `linear-gradient(105deg, rgba(255,255,255,0.92) 30%, rgba(0,123,255,0.10) 100%), url('/background/map.jpg')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-        borderRadius: 2,
+        position: 'absolute',
+        inset: 0,
         width: '100%',
-        height: '100%',
-        boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px',
-      }}>
-      <CardContent>
-        <Box display={'flex'} alignItems='center' mb={3} gap={2}>
-          <AirlineLogo airline={flight.airline} />
-          <Box>
-            <Typography variant='h6' fontWeight={700} mb={0.5}>
-              {flight.airline.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {flight.flightNumber} • Ekonomi • {formatDuration(flight.duration)}
-            </Typography>
-          </Box>
-        </Box>
-        
-        <Box display="flex" alignItems="center" gap={1} mb={2}>
-          <Chip
-            label={statusConfig.text}
-            color={statusConfig.color}
-            size="small"
-          />
-          <Box display="flex" alignItems="center" gap={0.5}>
-            <AirlineSeatReclineNormal fontSize="small" color="action" />
-            <Typography variant="caption" color="text.secondary">
-              {flight.availability.economy} kursi tersedia
-            </Typography>
-          </Box>
-        </Box>
-        
-        <Typography variant="body2" fontWeight={600} mb={0.5}>
-          Tiket Sudah Termasuk
-        </Typography>
-        <Typography variant="caption" color="text.secondary" mb={1} display="block">
-          Kabin: 7 kg, Bagasi: 20 kg
-        </Typography>
+        height: 200,
+        backgroundImage: `linear-gradient(105deg, rgba(255,255,255,0.92) 30%, rgba(0,123,255,0.10) 100%), url('/background/plane.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        zIndex: 0,
+      }}
+    />
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Header Skeleton */}
+      <Skeleton variant="text" width={300} height={40} sx={{ mb: 3 }} />
 
-        <Box display="flex" gap={1}>
-          <Chip variant='outlined' label="Gratis makanan" color="info" size="small" />
-          <Chip variant='outlined' label="Gratis wifi" color="info" size="small" />
-        </Box>
-      </CardContent>
-    </Card>
-  );
-});
+      {/* Flight Card Skeleton */}
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Stack spacing={2}>
+            <Skeleton variant="text" width="60%" height={30} />
+            <Skeleton variant="text" width="40%" height={20} />
+            <Box display="flex" gap={1}>
+              <Skeleton variant="rounded" width={80} height={24} />
+              <Skeleton variant="rounded" width={100} height={24} />
+            </Box>
+            <Divider />
+            <Skeleton variant="text" width="30%" height={20} />
+          </Stack>
+        </CardContent>
+      </Card>
 
-const LoadingSkeleton = React.memo(() => (
-  <Container maxWidth="lg" sx={{ py: 4 }}>
-    <Skeleton variant="text" height={60} width={300} sx={{ mb: 2 }} />
-    <Skeleton variant="rectangular" height={300} sx={{ mb: 3, borderRadius: 2 }} />
-    <Skeleton variant="text" height={40} width={200} sx={{ mb: 2 }} />
-    <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />
-  </Container>
-));
+      {/* Ticket Selection Skeleton */}
+      <Skeleton variant="text" width={200} height={30} sx={{ mb: 2 }} />
+
+      <Card variant="outlined">
+        <CardContent>
+          <Stack spacing={2}>
+            <Skeleton variant="text" width="40%" height={24} />
+            <Box display="flex" gap={1}>
+              <Skeleton variant="rounded" width={90} height={24} />
+              <Skeleton variant="rounded" width={110} height={24} />
+            </Box>
+            <Skeleton variant="text" width="30%" height={20} />
+            <Divider />
+            <Box display="flex" justifyContent="space-between">
+              <Box>
+                <Skeleton variant="text" width={120} height={20} />
+                <Skeleton variant="text" width={150} height={28} />
+              </Box>
+              <Skeleton variant="rounded" width={120} height={36} />
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* Info Alert Skeleton */}
+      <Skeleton variant="rounded" width="100%" height={60} sx={{ mt: 3 }} />
+    </Container>
+  </Box>
+);
 
 export default function FlightReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ticketDetailOpen, setTicketDetailOpen] = useState(false);
 
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
-  
+
   const flight = useSelector((state: RootState) => state.booking.selectedFlight);
-  
   const flightId = params.flightId as string;
 
   // Memoized computed values
   const passengerCounts = useMemo(() => {
-    const adults = parseInt(searchParams.get('adults') || searchParams.get('adult') || '1');
-    const children = parseInt(searchParams.get('children') || '0');
-    const infants = parseInt(searchParams.get('infants') || '0');
+    const adults = parseInt(searchParams.get('adults') ?? searchParams.get('adult') ?? '1', 10);
+    const children = parseInt(searchParams.get('child') ?? '0', 10);
+    const infants = parseInt(searchParams.get('infant') ?? '0', 10);
     return { adults, children, infants, total: adults + children + infants };
   }, [searchParams]);
 
   const cityNames = useMemo(() => ({
-    departure: POPULAR_CITIES.find(city => city.code === flight?.departure.iata)?.name,
-    arrival: POPULAR_CITIES.find(city => city.code === flight?.arrival.iata)?.name
+    departure: POPULAR_CITIES.find(city => city.code === flight?.departure.iata)?.name || flight?.departure.iata || '',
+    arrival: POPULAR_CITIES.find(city => city.code === flight?.arrival.iata)?.name || flight?.arrival.iata || ''
   }), [flight?.departure.iata, flight?.arrival.iata]);
 
-  const tripType = useMemo(() => searchParams.get('tripType'), [searchParams]);
+  const tripType = useMemo(() => searchParams.get('tripType') || 'one-way', [searchParams]);
+  const travelClass = useMemo(() => (
+    (searchParams.get('class') || searchParams.get('travelClass') || 'economy') as 'economy' | 'business' | 'first'
+  ), [searchParams]);
 
-  const totalPrice = useMemo(() => 
-    flight ? flight.price.economy * passengerCounts.total : 0,
-    [flight, passengerCounts.total]
-  );
-
-  // Memoized passenger display text
   const passengerText = useMemo(() => {
     const parts = [];
     if (passengerCounts.adults > 0) parts.push(`${passengerCounts.adults} Dewasa`);
@@ -347,8 +197,8 @@ export default function FlightReviewPage() {
               children: passengerCounts.children,
               infants: passengerCounts.infants,
             },
-            class: (searchParams.get('travelClass') || 'economy') as 'economy' | 'business' | 'first',
-            tripType: (tripType || 'one-way') as 'one-way' | 'round-trip'
+            class: travelClass === 'first' ? 'first class' : travelClass,
+            tripType: tripType as 'one-way' | 'round-trip'
           };
           dispatch(setSearchParams(parsedSearchParams));
         }
@@ -360,9 +210,8 @@ export default function FlightReviewPage() {
     };
 
     fetchData();
-  }, [flightId, flight, dispatch, searchParams, error, passengerCounts, tripType]);
+  }, [flightId, flight, dispatch, searchParams, error, passengerCounts, tripType, travelClass]);
 
-  // Memoized handlers
   const handleProceedToBooking = useCallback(() => {
     const bookingUrl = `/pesawat/booking/${flightId}/passengers?${searchParams.toString()}`;
     router.push(bookingUrl);
@@ -375,9 +224,16 @@ export default function FlightReviewPage() {
   if (error || !flight) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error">
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error || 'Flight not found'}
         </Alert>
+        <Button
+          variant="contained"
+          onClick={() => router.push('/pesawat')}
+          sx={{ mt: 2 }}
+        >
+          Kembali ke Pencarian
+        </Button>
       </Container>
     );
   }
@@ -389,89 +245,68 @@ export default function FlightReviewPage() {
         position: 'relative',
         py: 4,
         overflow: 'hidden',
+        minHeight: '100vh'
       }}
     >
-      {/* Simplified background */}
+      {/* Background */}
       <Box
         sx={{
           position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: 200,
-            backgroundImage: `linear-gradient(105deg, rgba(255,255,255,0.92) 30%, rgba(0,123,255,0.10) 100%), url('/background/plane.jpg')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            zIndex: 0,
+          inset: 0,
+          width: '100%',
+          height: 200,
+          backgroundImage: `linear-gradient(105deg, rgba(255,255,255,0.92) 30%, rgba(0,123,255,0.10) 100%), url('/background/plane.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          zIndex: 0,
         }}
       />
-      
+
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
         <Typography variant="h5" color='text.primary' fontWeight="bold" gutterBottom mb={2}>
           {cityNames.departure} <ArrowCircleRightRoundedIcon sx={{ color: 'primary.main' }} /> {cityNames.arrival}
         </Typography>
 
-        <Card
-          elevation={2}
-          sx={{
-            p: 1,
-            mb: 3,
-            borderRadius: 2,
-            boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px',
-            backgroundColor: 'rgba(255,255,255,0.95)',
-          }}
-        >
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="subtitle1" color='text.primary' fontWeight={600}>
-                {passengerText}
-              </Typography>
-              <Chip 
-                label={tripType === 'round-trip' ? 'Pulang Pergi' : 'Sekali Jalan'} 
-                size="small" 
-                color={tripType === 'round-trip' ? 'warning' : 'info'} 
-              />
-            </Box>
+        <TicketDetailCard
+          flight={flight}
+          passengerText={passengerText}
+          tripType={tripType as 'one-way' | 'round-trip'}
+        />
 
-            <Typography variant="subtitle1" fontWeight="medium" mb={2}>
-              {dayjs(flight.departure.time).format('ddd, DD MMM YYYY')}
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
-              <FlightTimeline flight={flight} />
-              <FlightDetailsCard flight={flight} />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Typography variant="subtitle1" color='text.primary' fontWeight="bold" gutterBottom>
+        <Typography variant="subtitle1" color='text.primary' fontWeight="bold" gutterBottom mt={3}>
           Pilih Jenis Tiket
         </Typography>
 
         <Card variant="outlined" sx={{ mb: 2 }}>
           <CardContent>
             <Typography variant="subtitle2" mb={1}>
-              Ekonomi
+              {travelClass === 'first' ? 'First Class' : travelClass.charAt(0).toUpperCase() + travelClass.slice(1)}
             </Typography>
             <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <Chip label="Bisa refund" color="success" size="small" />
-              <Chip label="Bisa reschedule" color="info" size="small" />
+              <Chip label="Bisa refund" color='default' size="small" />
+              <Chip label="Bisa reschedule" color="default" size="small" />
             </Box>
-            <Typography variant="body2" color="primary" sx={{ cursor: 'pointer', fontWeight: 600, mb: 2 }}>
+            <Typography
+              variant="body2"
+              color="primary"
+              sx={{ cursor: 'pointer', fontWeight: 600, my: 2 }}
+              onClick={() => setTicketDetailOpen(true)}
+            >
               Lihat Detail
             </Typography>
-            
+
             <Box display="flex" justifyContent="space-between" alignItems="center">
               <Box>
                 <Typography variant="body2" color="text.secondary">
-                  {formatCurrency(flight.price.economy)} /pax
+                  {formatCurrency(flight.price?.[travelClass] ?? 0)}/pax
                 </Typography>
                 <Typography variant="h6" fontWeight="bold" color="error">
-                  Total {formatCurrency(totalPrice)}
+                  Total {formatCurrency((flight.price?.[travelClass] ?? 0) * (passengerCounts?.total ?? 0))}
                 </Typography>
               </Box>
-              <Button 
-                sx={{ borderRadius: 2, textTransform: 'none' }} 
-                variant="contained" 
+              <Button
+                sx={{ borderRadius: 2, textTransform: 'none' }}
+                variant="contained"
                 onClick={handleProceedToBooking}
               >
                 Pilih Tiket
@@ -480,12 +315,27 @@ export default function FlightReviewPage() {
           </CardContent>
         </Card>
 
-        <Alert severity="info">
+        <Alert severity="info" sx={{ mt: 2 }}>
           <Typography variant="body2">
             Tiket 100% Refund hanya tersedia untuk penerbangan dengan keberangkatan <strong>lebih dari 24 jam</strong> dari saat pemesanan.
           </Typography>
         </Alert>
       </Container>
+
+      <TicketDetailModal
+        open={ticketDetailOpen}
+        onClose={() => setTicketDetailOpen(false)}
+        flight={flight}
+        travelClass={travelClass}
+        passengerCounts={{
+          adult: passengerCounts.adults,
+          child: passengerCounts.children,
+          infant: passengerCounts.infants,
+          total: passengerCounts.total
+        }}
+        formatCurrency={formatCurrency}
+        onSelectTicket={handleProceedToBooking}
+      />
     </Box>
   );
 }

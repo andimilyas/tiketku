@@ -7,6 +7,8 @@ interface SearchFilters {
     min: number;
     max: number;
   };
+  departureTimeSlots: string[];
+  arrivalTimeSlots: string[];
   selectedAirlines: string[];
   selectedPriceRange: {
     min: number;
@@ -22,6 +24,7 @@ interface SearchState {
   sortBy: 'price' | 'departure' | 'duration' | 'arrival';
   sortOrder: 'asc' | 'desc';
   searchParams: FlightSearchParams | null;
+  hasUserInteractedWithFilters: boolean; // NEW: Track user interaction
 }
 
 const initialState: SearchState = {
@@ -31,12 +34,15 @@ const initialState: SearchState = {
   filters: {
     airlines: [],
     priceRange: { min: 0, max: 10000000 },
-    selectedAirlines: [],
+    departureTimeSlots: [],
+    arrivalTimeSlots: [],
+    selectedAirlines: [], // This should remain empty until user selects
     selectedPriceRange: { min: 0, max: 10000000 }
   },
   sortBy: 'departure',
   sortOrder: 'asc',
-  searchParams: null
+  searchParams: null,
+  hasUserInteractedWithFilters: false // NEW
 };
 
 // Async thunk for searching flights
@@ -74,34 +80,73 @@ const searchSlice = createSlice({
   initialState,
   reducers: {
     setSearchParams: (state, action: PayloadAction<FlightSearchParams>) => {
-    state.flights = [];
-    state.error = null;
-    state.isLoading = false;
-    state.searchParams = action.payload;
-  },
+      state.searchParams = action.payload;
+    },
+    
     setSortBy: (state, action: PayloadAction<SearchState['sortBy']>) => {
       state.sortBy = action.payload;
+      state.hasUserInteractedWithFilters = true; // Mark user interaction
+    },
+
+    setSort: (state, action: PayloadAction<{by: SearchState['sortBy'], order: SearchState['sortOrder']}>) => {
+      state.sortBy = action.payload.by;
+      state.sortOrder = action.payload.order;
+      state.hasUserInteractedWithFilters = true; // Mark user interaction
     },
     
     setSortOrder: (state, action: PayloadAction<SearchState['sortOrder']>) => {
       state.sortOrder = action.payload;
+      state.hasUserInteractedWithFilters = true; // Mark user interaction
     },
     
     setSelectedAirlines: (state, action: PayloadAction<string[]>) => {
       state.filters.selectedAirlines = action.payload;
+      state.hasUserInteractedWithFilters = true; // Mark user interaction
     },
     
     setSelectedPriceRange: (state, action: PayloadAction<{min: number; max: number}>) => {
       state.filters.selectedPriceRange = action.payload;
+      state.hasUserInteractedWithFilters = true; // Mark user interaction
+    },
+
+    setDepartureTimeSlots: (state, action: PayloadAction<string[]>) => {
+      state.filters.departureTimeSlots = action.payload;
+      state.hasUserInteractedWithFilters = true; // Mark user interaction
+    },
+    
+    setArrivalTimeSlots: (state, action: PayloadAction<string[]>) => {
+      state.filters.arrivalTimeSlots = action.payload;
+      state.hasUserInteractedWithFilters = true; // Mark user interaction
     },
     
     clearFilters: (state) => {
       state.filters.selectedAirlines = [];
       state.filters.selectedPriceRange = state.filters.priceRange;
+      state.filters.departureTimeSlots = [];
+      state.filters.arrivalTimeSlots = [];
+      state.sortBy = 'departure';
+      state.sortOrder = 'asc';
+      state.hasUserInteractedWithFilters = false; // Reset user interaction
     },
     
     clearSearch: (state) => {
       return initialState;
+    },
+    
+    resetSearchState: (state) => {
+      state.flights = [];
+      state.error = null;
+      state.isLoading = false;
+      // Reset filters completely for new search
+      state.filters = {
+        airlines: [],
+        priceRange: { min: 0, max: 10000000 },
+        departureTimeSlots: [],
+        arrivalTimeSlots: [],
+        selectedAirlines: [],
+        selectedPriceRange: { min: 0, max: 10000000 }
+      };
+      state.hasUserInteractedWithFilters = false;
     }
   },
   
@@ -116,19 +161,23 @@ const searchSlice = createSlice({
         state.isLoading = false;
         state.flights = action.payload.flights;
         
-        // Update filters based on search results with proper typing
+        // Update available filter options based on search results
         const airlines: string[] = [...new Set(action.payload.flights.map((f: ProcessedFlight) => f.airline.name))];
         const prices: number[] = action.payload.flights.map((f: ProcessedFlight) => f.price.economy);
-        state.filters.selectedAirlines = [];
+        
         state.filters.airlines = airlines;
-        state.filters.priceRange = {
+        const newPriceRange = {
           min: prices.length > 0 ? Math.min(...prices) : 0,
           max: prices.length > 0 ? Math.max(...prices) : 10000000
         };
+        state.filters.priceRange = newPriceRange;
         
-        // Initialize selected filters if not set
-        if (state.filters.selectedPriceRange.min === 0 && state.filters.selectedPriceRange.max === 10000000) {
-          state.filters.selectedPriceRange = state.filters.priceRange;
+        // Only reset selected filters if user hasn't interacted with them
+        if (!state.hasUserInteractedWithFilters) {
+          state.filters.selectedAirlines = []; // Keep empty - no filter applied
+          state.filters.selectedPriceRange = newPriceRange; // Use full range
+          state.filters.departureTimeSlots = [];
+          state.filters.arrivalTimeSlots = [];
         }
       })
       .addCase(searchFlights.rejected, (state, action) => {
@@ -143,11 +192,16 @@ const searchSlice = createSlice({
 export const {
   setSortBy,
   setSortOrder,
+  setSort,
   setSelectedAirlines,
   setSelectedPriceRange,
+  setDepartureTimeSlots,
+  setArrivalTimeSlots,
   clearFilters,
   clearSearch,
-  setSearchParams 
+  setSearchParams,
+  resetSearchState
 } = searchSlice.actions;
 
 export default searchSlice.reducer;
+export type { SearchState };

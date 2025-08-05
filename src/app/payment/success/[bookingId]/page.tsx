@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 import {
   Container,
   Card,
@@ -16,55 +17,26 @@ import {
 } from '@mui/material';
 import { CheckCircle, FlightTakeoff, Download, Email, Print } from '@mui/icons-material';
 import dayjs from 'dayjs';
+import { RootState } from '@/store';
 
 export default function PaymentSuccessPage() {
   const params = useParams();
   const router = useRouter();
-  const [bookingData, setBookingData] = useState<any>(null);
-
   const bookingId = params.bookingId as string;
 
-  useEffect(() => {
-    // In a real app, fetch booking details from API
-    // For now, use mock data
-    const mockBookingData = {
-      id: bookingId,
-      status: 'CONFIRMED',
-      type: 'flight',
-      bookingDate: new Date().toISOString(),
-      flight: {
-        number: 'GA-123',
-        airline: 'Garuda Indonesia',
-        departure: {
-          airport: 'Soekarno-Hatta International Airport',
-          iata: 'CGK',
-          scheduled: '2025-01-15T08:00:00Z'
-        },
-        arrival: {
-          airport: 'Ngurah Rai International Airport',
-          iata: 'DPS',
-          scheduled: '2025-01-15T10:30:00Z'
-        },
-        duration: 'PT2H30M'
-      },
-      passengers: [
-        {
-          name: 'John Doe',
-          passport: 'A12345678',
-          seat: '12A'
-        },
-        {
-          name: 'Jane Doe',
-          passport: 'B87654321',
-          seat: '12B'
-        }
-      ],
-      totalAmount: 3300000,
-      paymentMethod: 'Credit Card'
-    };
-
-    setBookingData(mockBookingData);
-  }, [bookingId]);
+  // Ambil data booking dari redux store
+  // Asumsi: booking detail sudah ada di redux, misal di state.booking.latestSuccess atau state.booking.byId[bookingId]
+  // Silakan sesuaikan selector sesuai struktur redux-mu
+  const bookingData = useSelector((state: RootState) => {
+    // Coba cari di byId, fallback ke latestSuccess jika ada
+    if (state.booking && state.booking.byId && state.booking.byId[bookingId]) {
+      return state.booking.byId[bookingId];
+    }
+    if (state.booking && state.booking.latestSuccess && state.booking.latestSuccess.id === bookingId) {
+      return state.booking.latestSuccess;
+    }
+    return null;
+  });
 
   const handleDownloadTicket = () => {
     // In a real app, generate and download PDF ticket
@@ -103,8 +75,6 @@ export default function PaymentSuccessPage() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-
-
       {/* Success Alert */}
       <Alert 
         severity="success" 
@@ -170,7 +140,7 @@ export default function PaymentSuccessPage() {
                 Total Pembayaran
               </Typography>
               <Typography variant="h6" fontWeight="bold" color="primary">
-                Rp {bookingData.totalAmount.toLocaleString()}
+                Rp {bookingData.totalAmount?.toLocaleString()}
               </Typography>
             </Grid>
           </Grid>
@@ -187,7 +157,7 @@ export default function PaymentSuccessPage() {
           <Box display="flex" alignItems="center" mb={3}>
             <FlightTakeoff sx={{ mr: 2, color: 'primary.main' }} />
             <Typography variant="h6">
-              {bookingData.flight.airline} - {bookingData.flight.number}
+              {bookingData.flight?.airline} - {bookingData.flight?.number}
             </Typography>
           </Box>
 
@@ -195,13 +165,13 @@ export default function PaymentSuccessPage() {
             <Grid size={{ xs: 5 }}>
               <Box textAlign="center">
                 <Typography variant="h5" fontWeight="bold">
-                  {dayjs(bookingData.flight.departure.scheduled).format('HH:mm')}
+                  {bookingData.flight?.departure?.scheduled && dayjs(bookingData.flight.departure.scheduled).format('HH:mm')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {bookingData.flight.departure.iata}
+                  {bookingData.flight?.departure?.iata}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {bookingData.flight.departure.airport}
+                  {bookingData.flight?.departure?.airport}
                 </Typography>
               </Box>
             </Grid>
@@ -209,7 +179,7 @@ export default function PaymentSuccessPage() {
             <Grid size={{ xs: 2 }}>
               <Box textAlign="center">
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {formatDuration(bookingData.flight.duration)}
+                  {bookingData.flight?.duration && formatDuration(bookingData.flight.duration)}
                 </Typography>
                 <Box sx={{ position: 'relative', height: 2, bgcolor: 'grey.300', borderRadius: 1 }}>
                   <Box sx={{ position: 'absolute', top: -4, left: '50%', transform: 'translateX(-50%)' }}>
@@ -222,13 +192,13 @@ export default function PaymentSuccessPage() {
             <Grid size={{ xs: 5 }}>
               <Box textAlign="center">
                 <Typography variant="h5" fontWeight="bold">
-                  {dayjs(bookingData.flight.arrival.scheduled).format('HH:mm')}
+                  {bookingData.flight?.arrival?.scheduled && dayjs(bookingData.flight.arrival.scheduled).format('HH:mm')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {bookingData.flight.arrival.iata}
+                  {bookingData.flight?.arrival?.iata}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {bookingData.flight.arrival.airport}
+                  {bookingData.flight?.arrival?.airport}
                 </Typography>
               </Box>
             </Grid>
@@ -243,8 +213,8 @@ export default function PaymentSuccessPage() {
             Daftar Penumpang
           </Typography>
           
-          {bookingData.passengers.map((passenger: any, index: number) => (
-            <Box key={index} mb={2}>
+          {Array.isArray(bookingData.passengers) && bookingData.passengers.map((passenger: any) => (
+            <Box key={passenger.passport || passenger.name} mb={2}>
               <Grid container spacing={2} alignItems="center">
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <Typography variant="subtitle1" fontWeight="bold">
@@ -260,7 +230,8 @@ export default function PaymentSuccessPage() {
                   <Chip label={`Seat ${passenger.seat}`} color="primary" size="small" />
                 </Grid>
               </Grid>
-              {index < bookingData.passengers.length - 1 && <Divider sx={{ mt: 2 }} />}
+              {/* Divider jika bukan penumpang terakhir */}
+              {bookingData.passengers[bookingData.passengers.length - 1] !== passenger && <Divider sx={{ mt: 2 }} />}
             </Box>
           ))}
         </CardContent>

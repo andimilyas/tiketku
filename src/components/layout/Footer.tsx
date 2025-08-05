@@ -18,7 +18,7 @@ const Logo = ({ height = 40 }: { height?: number }) => (
     sx={{
       fontWeight: 'bold',
       color: 'primary.main',
-      fontSize: `${height * 0.4}px`
+      fontSize: `${height * 0.6}px`
     }}
   >
     TixGo
