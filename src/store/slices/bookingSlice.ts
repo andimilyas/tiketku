@@ -39,6 +39,7 @@ const initialState: BookingState = {
   selectedFlight: null,
   passengerDetails: [],
   contactInfo: {
+    title: '',
     name: '',
     email: '',
     phone: '',
@@ -57,7 +58,7 @@ const bookingSlice = createSlice({
   reducers: {
     setCurrentStep: (state, action: PayloadAction<BookingState['currentStep']>) => {
       state.currentStep = action.payload;
-    },
+    },  
 
     setSearchParams: (state, action: PayloadAction<BookingState['searchParams']>) => {
       state.searchParams = action.payload;
@@ -124,6 +125,19 @@ const bookingSlice = createSlice({
       if (currentIndex > 0) {
         state.currentStep = steps[currentIndex - 1];
       }
+    },
+
+    savePassengerForm: (state, action: PayloadAction<{
+      passengers: PassengerDetail[];
+      contactInfo: ContactInfo;
+    }>) => {
+      state.passengerDetails = action.payload.passengers;
+      state.contactInfo = action.payload.contactInfo;
+    },
+    
+    clearPassengerForm: (state) => {
+      state.passengerDetails = [];
+      state.contactInfo = initialState.contactInfo;
     }
   },
   extraReducers: (builder) => {
@@ -161,6 +175,8 @@ export const {
   confirmBooking,
   resetBooking,
   clearError,
+  savePassengerForm,
+  clearPassengerForm,
   goBackStep
 } = bookingSlice.actions;
 

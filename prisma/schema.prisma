@@ -139,12 +139,22 @@ model BookingItem {
 }
 
 model Passenger {
-  id        String   @id @default(uuid())
-  bookingId String
-  fullName  String
-  document  String?  // KTP atau paspor
-  seat      String?
-  booking   Booking  @relation(fields: [bookingId], references: [id])
+  id          String   @id @default(uuid())
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  bookingId   String
+  type        String   // 'adult', 'child', 'infant'
+  title       String   // 'Tuan', 'Nyonya', 'Nona'
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  nationality String
+  documentType String  // 'passport', 'ktp'
+  documentNumber String
+  documentExpiry DateTime?
+  seat        String?
+  mealPreference String?
+  createdAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // ------------------- PAYMENT -------------------

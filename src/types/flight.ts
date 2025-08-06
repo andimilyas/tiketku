@@ -142,25 +142,27 @@ export interface BookingState {
 }
 
 export interface PassengerDetail {
-  id: string;
+  id?: string;
   type: 'adults' | 'children' | 'infants';
   title: 'Tuan' | 'Nyonya' | 'Nona';
   firstName: string;
   lastName: string;
-  dateOfBirth: Date;
+  dateOfBirth: string;
   nationality: string;
-  documentType: 'passport' | 'ktp';
-  documentNumber: string;
+  documentType?: 'passport' | 'ktp';
+  documentNumber?: string;
   documentExpiry?: Date;
   seatPreference?: string;
   mealPreference?: string;
+  passportNumber?: string;
 }
 
 export interface ContactInfo {
+  title: string;
   name: string;
   email: string;
   phone: string;
-  countryCode: string;
+  countryCode?: string;
 }
 
 export interface PaymentInfo {

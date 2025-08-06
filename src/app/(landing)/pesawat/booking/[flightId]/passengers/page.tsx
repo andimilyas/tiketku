@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { savePassengerForm } from '@/store/slices/bookingSlice';
 import {
   Container,
   Card,
@@ -26,7 +27,8 @@ import {
   Link,
   Switch,
   FormHelperText,
-  Skeleton
+  Skeleton,
+  CircularProgress
 } from '@mui/material';
 import ArrowCircleRightRoundedIcon from '@mui/icons-material/ArrowCircleRightRounded';
 import { useForm, Controller } from 'react-hook-form';
@@ -37,7 +39,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs from 'dayjs';
 import { Flight } from '@mui/icons-material';
-import type { ProcessedFlight } from '@/types/flight';
+import type { PassengerDetail, ContactInfo, ProcessedFlight } from '@/types/flight';
 
 import TicketDetailCardModal from '@/components/features/flight/Modal/TicketDetailCardModal';
 
@@ -54,8 +56,11 @@ const passengerSchema = z.object({
   contactInfo: z.object({
     name: z.string().min(1, 'Name is required'),
     email: z.string().email('Invalid email address'),
-    phone: z.string().min(1, 'Phone number is required'),
-    title: z.enum(['Tuan', 'Nyonya', 'Nona'])
+    phone: z.string().regex(/^\d+$/, 'Phone number must contain only numbers')
+      .min(9, 'Phone number must be at least 9 digits').max(15, 'Phone number must be at most 15 digits')
+      .min(1, 'Phone number is required'),
+    title: z.enum(['Tuan', 'Nyonya', 'Nona']),
+    countryCode: z.string().optional()
   })
 });
 
@@ -136,6 +141,7 @@ const PassengerInput = React.memo(({
         Penumpang {index + 1} ({type})
       </Typography>
       <FormControlLabel
+        disabled
         control={<Switch color="primary" />}
         label="Sama dengan pemesan"
         sx={{ ml: 2 }}
@@ -274,6 +280,12 @@ export default function PassengerDetailsPage() {
 
   const [isModalOpen, setModalOpen] = useState(false);
 
+  const dispatch = useDispatch();
+  const bookingState = useSelector((state: RootState) => state.booking);
+
+  const savedPassengers = bookingState.passengerDetails;
+  const savedContactInfo = bookingState.contactInfo;
+
   const flightId = params.flightId as string;
   const adults = parseInt(searchParams.get('adult') || '1');
   const children = parseInt(searchParams.get('child') || '0');
@@ -312,22 +324,31 @@ export default function PassengerDetailsPage() {
 
   // Memoized default values
   const defaultValues = useMemo(() => ({
-    passengers: Array(adults + children + infants).fill(null).map(() => ({
-      firstName: '',
-      lastName: '',
-      dateOfBirth: '',
-      passportNumber: '',
-      nationality: '',
-      title: 'Tuan' as const
-    })),
+    passengers: savedPassengers.length > 0
+      ? savedPassengers.map(p => ({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        dateOfBirth: p.dateOfBirth,
+        passportNumber: p.passportNumber,
+        nationality: p.nationality,
+        title: p.title as 'Tuan' | 'Nyonya' | 'Nona' // Type assertion
+      }))
+      : Array(adults + children + infants).fill(null).map(() => ({
+        firstName: '',
+        lastName: '',
+        dateOfBirth: '',
+        passportNumber: '',
+        nationality: '',
+        title: 'Tuan' as const
+      })),
     contactInfo: {
-      name: '',
-      email: '',
-      phone: '',
-      title: 'Tuan' as const
+      name: savedContactInfo.name || '',
+      email: savedContactInfo.email || '',
+      phone: savedContactInfo.phone || '',
+      title: (savedContactInfo.title as 'Tuan' | 'Nyonya' | 'Nona') || 'Tuan',
+      countryCode: savedContactInfo.countryCode || ''
     }
-  }), [adults, children, infants]);
-
+  }), [adults, children, infants, savedPassengers, savedContactInfo]);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<PassengerFormData>({
     resolver: zodResolver(passengerSchema),
     defaultValues
@@ -336,22 +357,39 @@ export default function PassengerDetailsPage() {
   // Memoized submit handler
   const onSubmit = useCallback(async (data: PassengerFormData) => {
     try {
-      console.log('Form submitted!');
-      console.log('Passenger data:', data);
+      dispatch(savePassengerForm({
+        passengers: data.passengers.map((p, index) => {
+          let passengerType: 'adults' | 'children' | 'infants';
 
-      if (!selectedFlight) {
-        console.error('No selected flight found');
-        return;
-      }
+          if (index < adults) {
+            passengerType = 'adults';
+          } else if (index < adults + children) {
+            passengerType = 'children';
+          } else {
+            passengerType = 'infants';
+          }
 
-      const paymentUrl = `/payment/checkout/${flightId}?${searchParams.toString()}`;
-      console.log('Navigating to:', paymentUrl);
-      router.push(paymentUrl);
+          return {
+            title: p.title,
+            type: passengerType,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            dateOfBirth: p.dateOfBirth,
+            nationality: p.nationality,
+            passportNumber: p.passportNumber
+          };
+        }),
+        contactInfo: {
+          ...data.contactInfo,
+          title: data.contactInfo.title as 'Tuan' | 'Nyonya' | 'Nona'
+        }
+      }));
+
+      router.push(`/payment/checkout/${flightId}?${searchParams.toString()}`);
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error:', error);
     }
-  }, [selectedFlight, flightId, searchParams, router]);
-
+  }, [adults, children, infants, dispatch, flightId, router, searchParams]);
   // Simulate loading untuk memberikan feedback
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 100);
@@ -418,7 +456,7 @@ export default function PassengerDetailsPage() {
                 Detail Penumpang
               </Typography>
 
-              <form onSubmit={handleSubmit(onSubmit)}>
+              <form onSubmit={handleSubmit(onSubmit as any)}>
                 <Card sx={{ boxShadow: 'rgba(153, 153, 153, 0.22) 0px 5px 10px', borderRadius: 2, mb: 3 }}>
                   <CardContent>
                     {Object.keys(errors).length > 0 && (
@@ -495,6 +533,67 @@ export default function PassengerDetailsPage() {
                                 fullWidth
                                 error={!!errors.contactInfo?.phone}
                                 helperText={errors.contactInfo?.phone?.message}
+                                InputProps={{
+                                  startAdornment: (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+                                      <Controller
+                                        name="contactInfo.countryCode"
+                                        control={control}
+                                        render={({ field: countryField }) => (
+                                          <TextField
+                                            {...countryField}
+                                            select
+                                            variant="standard"
+                                            SelectProps={{
+                                              native: true,
+                                            }}
+                                            inputProps={{
+                                              style: {
+                                                padding: '4px 8px',
+                                                fontSize: 15,
+                                                minWidth: 60,
+                                                background: 'transparent',
+                                                border: 'none',
+                                                appearance: 'none',
+                                              }
+                                            }}
+                                            sx={{
+                                              minWidth: 70,
+                                              mr: 1,
+                                              '& .MuiInputBase-root': {
+                                                background: 'transparent',
+                                                border: 'none',
+                                                padding: 0,
+                                                fontWeight: 500,
+                                              },
+                                              '& .MuiSelect-select': {
+                                                padding: '4px 8px',
+                                                minWidth: 50,
+                                              },
+                                              '& .MuiInput-underline:before': {
+                                                borderBottom: 'none !important',
+                                              },
+                                              '& .MuiInput-underline:after': {
+                                                borderBottom: 'none !important',
+                                              },
+                                              '& .MuiInput-underline:hover:not(.Mui-disabled):before': {
+                                                borderBottom: 'none !important',
+                                              },
+                                              '& fieldset': { border: 'none' }
+                                            }}
+                                          >
+                                            <option value="+62">+62</option>
+                                            <option value="+65">+65</option>
+                                            <option value="+60">+60</option>
+                                            <option value="+1">+1</option>
+                                            <option value="+44">+44</option>
+                                            {/* Tambahkan kode negara lain jika perlu */}
+                                          </TextField>
+                                        )}
+                                      />
+                                    </Box>
+                                  )
+                                }}
                               />
                             )}
                           />
@@ -515,19 +614,33 @@ export default function PassengerDetailsPage() {
                             )}
                           />
                         </Grid>
-                      </Grid></Box>
-
+                      </Grid>
+                    </Box>
                   </CardContent>
                 </Card>
                 <Box display="flex" gap={2} mt={3}>
                   <Button
-                    sx={{ textTransform: 'none', flex: 1, borderRadius: 2 }}
+                    sx={{ textTransform: 'none', flex: 1, borderRadius: 2, position: 'relative' }}
                     type="submit"
                     variant="contained"
                     size="large"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Processing...' : 'Lanjut ke Pembayaran'}
+                    {isSubmitting ? (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                      >
+                        <CircularProgress size={24} color="inherit" />
+                      </Box>
+                    ) : null}
+                    <span style={{ visibility: isSubmitting ? 'hidden' : 'visible' }}>
+                      Lanjut ke Pembayaran
+                    </span>
                   </Button>
                 </Box>
               </form>
